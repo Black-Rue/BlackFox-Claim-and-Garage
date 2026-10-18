@@ -77,7 +77,7 @@ class BFCG_ToggleVehicleLockUserAction : ScriptedUserAction
 	override bool CanBeShownScript(IEntity user)
 	{
 		VehicleControllerComponent state = BFCG_VehicleClaimAccess.FindState(GetOwner());
-		if (!state || BFCG_ExcludedVehicleComponent.IsExcluded(state.GetOwner()))
+		if (!state || state.BFCG_IsDestroyed() || BFCG_ExcludedVehicleComponent.IsExcluded(state.GetOwner()))
 			return false;
 
 		if (!BFCG_VehicleClaimState.HasClaim(state))
@@ -89,7 +89,7 @@ class BFCG_ToggleVehicleLockUserAction : ScriptedUserAction
 	override bool GetActionNameScript(out string outName)
 	{
 		VehicleControllerComponent state = BFCG_VehicleClaimAccess.FindState(GetOwner());
-		if (!state || BFCG_ExcludedVehicleComponent.IsExcluded(state.GetOwner()))
+		if (!state || state.BFCG_IsDestroyed() || BFCG_ExcludedVehicleComponent.IsExcluded(state.GetOwner()))
 			return false;
 		if (!BFCG_VehicleClaimState.HasClaim(state))
 		{

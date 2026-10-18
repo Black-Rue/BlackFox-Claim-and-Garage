@@ -17,10 +17,20 @@ class BFCG_VehicleClaimComponentSerializer : ScriptedComponentSerializer
 		if (!claim)
 			return ESerializeResult.ERROR;
 
-		context.WriteValue("version", 1);
+		// A save must not miss destruction if a third-party damage event bypassed our callback.
+		// Do not request another Save() from inside serialization.
+		if (Replication.IsServer() && BFCG_Settings.IsValid() && claim.BFCG_IsDestroyed())
+		{
+			if (claim.BFCG_GetWreckDeleteAt() == 0)
+				claim.BFCG_RestoreWreckDeleteAt(System.GetUnixTime() + BFCG_Settings.Get().destroyedVehicleLifetimeSeconds);
+			BFCG_VehicleClaimState.ReleaseDestroyed(claim);
+		}
+
+		context.WriteValue("version", 2);
 		context.WriteValue("ownerIdentity", claim.BFCG_GetClaimOwnerIdentity());
 		context.WriteValue("locked", claim.BFCG_IsClaimLocked());
 		context.WriteValue("expiresAt", claim.BFCG_GetClaimExpiresAt());
+		context.WriteValue("wreckDeleteAt", claim.BFCG_GetWreckDeleteAt());
 		return ESerializeResult.OK;
 	}
 
@@ -34,13 +44,18 @@ class BFCG_VehicleClaimComponentSerializer : ScriptedComponentSerializer
 		string ownerIdentity;
 		bool locked;
 		int expiresAt;
+		int wreckDeleteAt;
 		context.ReadValueDefault("version", version, 1);
 		context.ReadValueDefault("ownerIdentity", ownerIdentity, string.Empty);
 		context.ReadValueDefault("locked", locked, false);
 		context.ReadValueDefault("expiresAt", expiresAt, 0);
+		context.ReadValueDefault("wreckDeleteAt", wreckDeleteAt, 0);
+		if (version < 1 || version > 2 || wreckDeleteAt < 0)
+			return false;
+		claim.BFCG_RestoreWreckDeleteAt(wreckDeleteAt);
 
 		// Discard expired claims; valid restored claims deliberately start locked regardless of their saved lock flag.
-		if (ownerIdentity.IsEmpty() || expiresAt <= System.GetUnixTime())
+		if (wreckDeleteAt > 0 || claim.BFCG_IsDestroyed() || ownerIdentity.IsEmpty() || expiresAt <= System.GetUnixTime())
 			claim.BFCG_ClearClaimState();
 		else
 			claim.BFCG_ApplyClaimState(ownerIdentity, true, expiresAt);

@@ -4,6 +4,7 @@
   "claimDurationHours": 72,
   "enableUnclaimedCleanup": false,
   "unclaimedLifetimeHours": 6,
+  "destroyedVehicleLifetimeSeconds": 1200,
   "initialRestoreDelaySeconds": 30,
   "proxyScanSeconds": 30,
   "spawnClearanceMeters": 3.0,

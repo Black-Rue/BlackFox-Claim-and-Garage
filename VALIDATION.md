@@ -58,6 +58,20 @@ Use an isolated profile and retain backups for these tests.
 - [ ] Test a forced crash around parking/retrieval and check for lost or duplicated vehicles across both storage paths.
 - [ ] Test addon removal/rollback with required vehicles retrieved and garage/world/profile backups retained.
 
+## Destroyed vehicles
+
+The wreck lifecycle change requires the following runtime checks; earlier owner testing predates this change.
+
+- [ ] Destroy a claimed vehicle: owner cache clears and a new world claim is immediately available.
+- [ ] Reject new claims and garage parking for wrecks; keep repairable vehicles claimable and parkable.
+- [ ] Remove claimed and unclaimed wrecks at `destroyedVehicleLifetimeSeconds`, including with optional unclaimed cleanup disabled.
+- [ ] Save and restart before the deadline: restore a wreck with the same absolute deadline, never a usable prefab.
+- [ ] Save and restart after cleanup: the removed vehicle must not return.
+- [ ] Load old version-1 claim metadata and settings without the new field; preserve old limits and use the default wreck lifetime.
+- [ ] Test already destroyed vehicles, missing events, occupied seats, nearby players, exclusions and two clients.
+- [ ] Confirm the host scenario actually selects a rule containing both claim and damage serializers.
+- [ ] Check the known crash-before-save limitation using an isolated profile.
+
 ## Release record
 
 Record the game/addon versions, scenario, server/client configuration, tested cases, results and relevant log timestamps. Preserve unresolved warnings and limitations in the release notes. Do not publish credentials, server identity files or private player data with test evidence.

@@ -9,7 +9,8 @@ Vehicle claiming and personal garage storage for **Arma Reforger**. A standalone
 - Claim vehicles and control their locks using persistent Bohemia player identities.
 - Store vehicles in a personal garage and retrieve them through configured terminals.
 - Retrieve at a free parking spot linked to the **current terminal**; refuse retrieval if all linked spots are occupied.
-- Reject parking of occupied vehicles and vehicles claimed by another player.
+- Reject parking of occupied or destroyed vehicles and vehicles claimed by another player.
+- Release destroyed vehicles from claims and remove their wrecks after a separate persistent deadline.
 - Enforce limits on the server, with English notifications and mouse/gamepad garage controls.
 - Integrate world vehicles and claim metadata with vanilla persistence.
 
@@ -66,6 +67,7 @@ See [settings.example.json](Configs/BFCG/settings.example.json) for the full exa
 | `claimDurationHours` | `72` | 1–8760 | Claim lifetime in hours; renewed on retrieval. |
 | `enableUnclaimedCleanup` | `false` | Boolean | Enable optional global cleanup of unclaimed vehicles. |
 | `unclaimedLifetimeHours` | `6` | 1–8760 | Unclaimed-vehicle lifetime when cleanup is enabled. |
+| `destroyedVehicleLifetimeSeconds` | `1200` | 60–86400 | Wreck lifetime after final destruction, independent of optional unclaimed cleanup. |
 | `initialRestoreDelaySeconds` | `30` | 0–300 | Initial delay before checking native restore readiness. |
 | `proxyScanSeconds` | `30` | 5–3600 | Vehicle interaction-proxy scan interval. |
 | `spawnClearanceMeters` | `3.0` | 1–50 | Minimum retrieval clearance radius; spot radius may increase it. |
@@ -77,6 +79,10 @@ Clients receive display values; their local files cannot change the server's lim
 ## Persistence and compatibility
 
 **Vehicles in the world** use vanilla vehicle persistence for transforms, fuel, damage and inventory, with the addon extending the native vehicle controller serializer for claim metadata. The host scenario must run vanilla persistence and commit saves through its normal save policy. This addon does not enable autosave or force independent save commits.
+
+Destroyed vehicles immediately lose their claim and stop counting toward the world limit. Only the final `DESTROYED` damage state starts wreck cleanup; repairable damage does not. Wrecks use a separate server timer (20 minutes by default), with an absolute deadline serialized in claim metadata. A successful native save commit preserves that deadline across restart. Cleanup waits while a character occupies a seat. Nearby players do not extend this separate timer. Excluded vehicles retain their existing lifecycle.
+
+The scenario must preserve this addon serializer and native damage serializers in its active persistence rules. A saved wreck marker prevents renewed claims and garage parking even if another persistence override loses damage. The marker retains the original cleanup deadline; it does not apply damage, reignite or delete a vehicle early. Correct visual and mechanical wreck restoration requires the native damage serializers. Legacy records without damage or a wreck marker cannot identify earlier destroyed vehicles. A crash before the scenario commits its save can still restore the previous state; this addon does not force a global save per destruction.
 
 **Garage records** are stored separately as JSON:
 

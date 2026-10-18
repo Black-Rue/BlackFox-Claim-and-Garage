@@ -15,6 +15,7 @@ class BFCG_Settings : JsonApiStruct
 	int claimDurationHours = 72;
 	bool enableUnclaimedCleanup = false;
 	int unclaimedLifetimeHours = 6;
+	int destroyedVehicleLifetimeSeconds = 1200;
 	int initialRestoreDelaySeconds = 30;
 	int proxyScanSeconds = 30;
 	float spawnClearanceMeters = 3.0;
@@ -27,6 +28,7 @@ class BFCG_Settings : JsonApiStruct
 		RegV("claimDurationHours");
 		RegV("enableUnclaimedCleanup");
 		RegV("unclaimedLifetimeHours");
+		RegV("destroyedVehicleLifetimeSeconds");
 		RegV("initialRestoreDelaySeconds");
 		RegV("proxyScanSeconds");
 		RegV("spawnClearanceMeters");
@@ -70,6 +72,8 @@ class BFCG_Settings : JsonApiStruct
         if (cfg.claimDurationHours < 1 || cfg.claimDurationHours > 8760)
             valid = false;
         if (cfg.unclaimedLifetimeHours < 1 || cfg.unclaimedLifetimeHours > 8760)
+            valid = false;
+        if (cfg.destroyedVehicleLifetimeSeconds < 60 || cfg.destroyedVehicleLifetimeSeconds > 86400)
             valid = false;
         if (cfg.initialRestoreDelaySeconds < 0 || cfg.initialRestoreDelaySeconds > 300)
             valid = false;

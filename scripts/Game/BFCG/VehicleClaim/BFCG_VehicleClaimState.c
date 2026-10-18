@@ -36,7 +36,7 @@ class BFCG_VehicleClaimState
 		expiresAt = 0;
 		locked = false;
 
-		if (!component || BFCG_ExcludedVehicleComponent.IsExcluded(component.GetOwner()))
+		if (!component || component.BFCG_IsDestroyed() || BFCG_ExcludedVehicleComponent.IsExcluded(component.GetOwner()))
 			return false;
 
 		if (!Replication.IsServer())
@@ -241,7 +241,7 @@ class BFCG_VehicleClaimState
 
 	protected static bool TryClaimIdentity(VehicleControllerComponent component, string playerIdentity)
 	{
-		if (!Replication.IsServer() || !component || playerIdentity.IsEmpty() || BFCG_ExcludedVehicleComponent.IsExcluded(component.GetOwner()))
+		if (!Replication.IsServer() || !component || component.BFCG_IsDestroyed() || playerIdentity.IsEmpty() || BFCG_ExcludedVehicleComponent.IsExcluded(component.GetOwner()))
 			return false;
 
 		ReleaseIfExpired(component);
@@ -264,7 +264,7 @@ class BFCG_VehicleClaimState
 
 	protected static bool RefreshFromGarageIdentity(VehicleControllerComponent component, string playerIdentity)
 	{
-		if (!Replication.IsServer() || !component || playerIdentity.IsEmpty() || BFCG_ExcludedVehicleComponent.IsExcluded(component.GetOwner()))
+		if (!Replication.IsServer() || !component || component.BFCG_IsDestroyed() || playerIdentity.IsEmpty() || BFCG_ExcludedVehicleComponent.IsExcluded(component.GetOwner()))
 			return false;
 
 		ReleaseIfExpired(component);
@@ -394,6 +394,7 @@ class BFCG_VehicleClaimState
 				continue;
 			}
 
+			component.BFCG_ReconcileWreck();
 			ReleaseIfExpired(component);
 		}
 
@@ -410,6 +411,17 @@ class BFCG_VehicleClaimState
 		bool locked;
 		if (Read(component, ownerIdentity, expiresAt, locked) && expiresAt > System.GetUnixTime())
 			Apply(component, ownerIdentity, true, expiresAt);
+	}
+
+	// Destruction revokes the owner immediately, independently of restore/readiness gates.
+	static void ReleaseDestroyed(VehicleControllerComponent component)
+	{
+		if (!Replication.IsServer() || !component || !component.BFCG_IsDestroyed())
+			return;
+		bool hadOwner = !component.BFCG_GetClaimOwnerIdentity().IsEmpty();
+		component.BFCG_ClearClaimState();
+		if (hadOwner)
+			PushClearedState(GetVehicleRplId(component));
 	}
 
 	protected static void ReleaseIfExpired(VehicleControllerComponent component)
@@ -445,7 +457,7 @@ class BFCG_VehicleClaimState
 			if (!component || !component.GetOwner() || component.GetOwner().IsDeleted())
 				continue;
 
-			if (component.BFCG_GetClaimOwnerIdentity().IsEmpty())
+			if (component.BFCG_IsDestroyed() || component.BFCG_GetClaimOwnerIdentity().IsEmpty())
 				continue;
 
 			if (component.BFCG_GetClaimExpiresAt() <= System.GetUnixTime())

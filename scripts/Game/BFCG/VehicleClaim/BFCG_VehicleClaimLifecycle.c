@@ -29,6 +29,75 @@ modded class VehicleControllerComponent
 	protected int m_iBFCGClaimExpiresAt;
 
 	protected IEntity m_pBFCGClaimActionProxy;
+	protected int m_iBFCGWreckDeleteAt;
+	// A positive deadline is permanent even if another serializer restores an intact prefab.
+	int BFCG_GetWreckDeleteAt()
+	{
+		return m_iBFCGWreckDeleteAt;
+	}
+
+	void BFCG_RestoreWreckDeleteAt(int deleteAt)
+	{
+		m_iBFCGWreckDeleteAt = deleteAt;
+		if (deleteAt > 0 && Replication.IsServer())
+			BFCG_DestroyedVehicleCleanupSystem.Register(this);
+	}
+
+	bool BFCG_IsDestroyed()
+	{
+		if (m_iBFCGWreckDeleteAt > 0)
+			return true;
+		IEntity owner = GetOwner();
+		if (!owner || owner.IsDeleted())
+			return false;
+		DamageManagerComponent damage = DamageManagerComponent.Cast(owner.FindComponent(DamageManagerComponent));
+		return damage && damage.GetState() == EDamageState.DESTROYED;
+	}
+
+	override protected void OnDestroyed(IEntity ent)
+	{
+		super.OnDestroyed(ent);
+		BFCG_ReconcileWreck();
+	}
+
+	override protected void OnDelete(IEntity owner)
+	{
+		if (GetGame())
+			GetGame().GetCallqueue().Remove(BFCG_EnsureClaimActionProxy);
+		BFCG_DestroyedVehicleCleanupSystem.Unregister(this);
+		super.OnDelete(owner);
+	}
+
+	void BFCG_ReconcileWreck()
+	{
+		if (!Replication.IsServer() || !BFCG_Settings.IsValid() || BFCG_ExcludedVehicleComponent.IsExcluded(GetOwner()))
+			return;
+		// Native damage and claim serializers can run in either order during loading.
+		if (SCR_PersistenceSystem.IsLoadInProgress() || !BFCG_IsDestroyed())
+			return;
+		IEntity owner = GetOwner();
+		if (!owner || owner.IsDeleted())
+			return;
+		bool firstObservation = m_iBFCGWreckDeleteAt == 0;
+		if (firstObservation)
+			m_iBFCGWreckDeleteAt = System.GetUnixTime() + BFCG_Settings.Get().destroyedVehicleLifetimeSeconds;
+		bool hadOwner = !m_sBFCGClaimOwnerIdentity.IsEmpty();
+		BFCG_VehicleClaimState.ReleaseDestroyed(this);
+		BFCG_DestroyedVehicleCleanupSystem.Register(this);
+		// This separate timer owns wreck lifetime; neither vanilla nor unclaimed cleanup may shorten it.
+		SCR_GarbageSystem garbage = SCR_GarbageSystem.GetByEntityWorld(owner);
+		if (garbage)
+		{
+			garbage.UpdateBlacklist(owner, false);
+			garbage.Withdraw(owner);
+		}
+		if (firstObservation || hadOwner)
+		{
+			BFCG_VehicleClaimPersistence.SaveClaim(this);
+			Print(string.Format("[BFCG] WRECK vehicle=%1 deleteAt=%2", BFCG_VehicleClaimState.BFCG_EntityName(owner), m_iBFCGWreckDeleteAt));
+		}
+	}
+
 
 	override void OnPostInit(IEntity owner)
 	{
@@ -44,6 +113,10 @@ modded class VehicleControllerComponent
 			return;
 
 		if (!GetGame().InPlayMode() || !Replication.IsServer())
+			return;
+
+		BFCG_ReconcileWreck();
+		if (BFCG_IsDestroyed())
 			return;
 
 		if (m_pBFCGClaimActionProxy)
@@ -128,6 +201,11 @@ modded class VehicleControllerComponent
 
 	void BFCG_ApplyClaimState(string ownerIdentity, bool locked, int expiresAt)
 	{
+		if (BFCG_IsDestroyed())
+		{
+			BFCG_ClearClaimState();
+			return;
+		}
 		bool hadClaim = !m_sBFCGClaimOwnerIdentity.IsEmpty();
 		m_sBFCGClaimOwnerIdentity = ownerIdentity;
 		m_bBFCGClaimLocked = locked;
@@ -204,6 +282,60 @@ class BFCG_VehicleClaimActionProxySystem
 	}
 }
 
+// Wreck deadlines are serialized with the vehicle; only wrecks are visited by this one-second tick.
+class BFCG_DestroyedVehicleCleanupSystem
+{
+	protected static ref array<VehicleControllerComponent> s_Vehicles = {};
+
+	static void Register(VehicleControllerComponent component)
+	{
+		if (component && !s_Vehicles.Contains(component))
+			s_Vehicles.Insert(component);
+	}
+
+	static void Unregister(VehicleControllerComponent component)
+	{
+		s_Vehicles.RemoveItem(component);
+	}
+
+	static void Sweep()
+	{
+		if (!Replication.IsServer() || !BFCG_Settings.IsValid() || SCR_PersistenceSystem.IsLoadInProgress())
+			return;
+		for (int i = s_Vehicles.Count() - 1; i >= 0; i--)
+		{
+			VehicleControllerComponent component = s_Vehicles[i];
+			if (!component || !component.GetOwner() || component.GetOwner().IsDeleted())
+			{
+				s_Vehicles.Remove(i);
+				continue;
+			}
+			IEntity vehicle = component.GetOwner();
+			if (BFCG_ExcludedVehicleComponent.IsExcluded(vehicle))
+			{
+				s_Vehicles.Remove(i);
+				continue;
+			}
+			component.BFCG_ReconcileWreck();
+			if (component.BFCG_GetWreckDeleteAt() <= 0 || component.BFCG_GetWreckDeleteAt() > System.GetUnixTime())
+				continue;
+			// Deleting children must never delete a seated player/AI, including after a third-party seat override.
+			if (BFCG_GARAGE_GarageManager.HasOccupants(vehicle))
+				continue;
+			PersistenceSystem persistence = PersistenceSystem.GetInstance();
+			if (persistence && persistence.IsTracked(vehicle))
+			{
+				if (persistence.GetState() != EPersistenceSystemState.ACTIVE || !persistence.StopTracking(vehicle, true))
+					continue;
+			}
+			// Removal of the native record becomes durable at the scenario's next successful save commit.
+			s_Vehicles.Remove(i);
+			Print("[BFCG] WRECK DELETE vehicle=" + BFCG_VehicleClaimState.BFCG_EntityName(vehicle));
+			SCR_EntityHelper.DeleteEntityAndChildren(vehicle);
+		}
+	}
+}
+
 // Optional cleanup starts a configured grace interval on first observation of an unclaimed vehicle.
 // Vanilla garbage collection is suppressed during this interval to preserve the configured lifetime.
 class BFCG_UnclaimedVehicleCleanupSystem
@@ -246,7 +378,7 @@ class BFCG_UnclaimedVehicleCleanupSystem
 
 			VehicleControllerComponent controller = VehicleControllerComponent.Cast(
 				vehicle.FindComponent(VehicleControllerComponent));
-			if (!controller || BFCG_VehicleClaimState.HasClaim(controller))
+			if (!controller || controller.BFCG_IsDestroyed() || BFCG_VehicleClaimState.HasClaim(controller))
 				continue;
 
 			SCR_GarbageSystem garbageSystem = SCR_GarbageSystem.GetByEntityWorld(vehicle);
@@ -268,6 +400,12 @@ class BFCG_UnclaimedVehicleCleanupSystem
 			entity.FindComponent(VehicleControllerComponent));
 		if (!controller || BFCG_ExcludedVehicleComponent.IsExcluded(entity))
 			return true;
+
+		if (controller.BFCG_IsDestroyed())
+		{
+			controller.BFCG_ReconcileWreck();
+			return true;
+		}
 
 		s_aSeenVehicles.Insert(entity);
 		int index = s_aTrackedVehicles.Find(entity);
@@ -316,6 +454,8 @@ modded class SCR_BaseGameMode
 			GetGame().GetCallqueue().CallLater(BFCG_VehicleClaimState.SweepExpiredClaims, 60000, true);
 			GetGame().GetCallqueue().CallLater(BFCG_UnclaimedVehicleCleanupSystem.Sweep, 1000, false);
 			GetGame().GetCallqueue().CallLater(BFCG_UnclaimedVehicleCleanupSystem.Sweep, 300000, true);
+			GetGame().GetCallqueue().Remove(BFCG_DestroyedVehicleCleanupSystem.Sweep);
+			GetGame().GetCallqueue().CallLater(BFCG_DestroyedVehicleCleanupSystem.Sweep, 1000, true);
 			BFCG_VehicleClaimPersistence.BeginRestore();
 
 			GetGame().GetCallqueue().CallLater(BFCG_VehicleClaimPersistence.Restore, BFCG_Settings.Get().initialRestoreDelaySeconds * 1000, false);

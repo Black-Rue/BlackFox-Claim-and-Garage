@@ -37,6 +37,14 @@ class BFCG_GARAGE_GarageManager
 		if (!CanUseStorage() || !vehicle || ownerUID.IsEmpty() || BFCG_ExcludedVehicleComponent.IsExcluded(vehicle))
 			return false;
 
+		DamageManagerComponent damage = DamageManagerComponent.Cast(vehicle.FindComponent(DamageManagerComponent));
+		VehicleControllerComponent controller = VehicleControllerComponent.Cast(vehicle.FindComponent(VehicleControllerComponent));
+		if ((damage && damage.GetState() == EDamageState.DESTROYED) || (controller && controller.BFCG_IsDestroyed()))
+		{
+			Print("[BFCG_GARAGE] Park denied: vehicle is destroyed", LogLevel.WARNING);
+			return false;
+		}
+
 		if (BFCG_VehicleClaimState.IsClaimedByOtherIdentity(vehicle, ownerUID))
 		{
 			Print("[BFCG_GARAGE] Park denied: vehicle is claimed by another player", LogLevel.WARNING);
