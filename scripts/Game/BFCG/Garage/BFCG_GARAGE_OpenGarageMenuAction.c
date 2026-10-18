@@ -1,28 +1,25 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_OpenGarageMenuAction.c
-//! BFCG_Garage - UserAction "Open Garage": открывает меню гаража (fullscreen UI)
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Чисто клиентское действие (HasLocalEffectOnlyScript=true).
-//------------------------------------------------------------------------------------------------
+/*
+ * Local terminal action that supplies the replicated terminal ID before opening the menu.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
 class BFCG_GARAGE_OpenGarageMenuAction : ScriptedUserAction
 {
-	//------------------------------------------------------------------------------------------------
+
 	override bool HasLocalEffectOnlyScript()
 	{
 		return true;
 	}
 
-	//------------------------------------------------------------------------------------------------
+	// Use the terminal RplComponent ID so the server can resolve and validate the selected terminal.
 	override void PerformAction(IEntity pOwnerEntity, IEntity pUserEntity)
 	{
-		// Меню открываем только на клиенте выполнившего игрока
+
 		if (pUserEntity != SCR_PlayerController.GetLocalControlledEntity())
 			return;
 
-		// Контекст гаража для меню: Id RplComponent пульта
-		// (именно rplComp.Id(), не Replication.FindId(entity))
 		RplComponent rplComp = RplComponent.Cast(pOwnerEntity.FindComponent(RplComponent));
 		if (!rplComp)
 		{
@@ -41,19 +38,16 @@ class BFCG_GARAGE_OpenGarageMenuAction : ScriptedUserAction
 		GetGame().GetMenuManager().OpenMenu(ChimeraMenuPreset.BFCG_GarageMenu);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool CanBeShownScript(IEntity user)
 	{
 		return BFCG_GARAGE_PlayerHelper.IsUserNearOwner(user, GetOwner());
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool CanBePerformedScript(IEntity user)
 	{
 		return true;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool GetActionNameScript(out string outName)
 	{
 		outName = "Open Garage";

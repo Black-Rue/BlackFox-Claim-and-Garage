@@ -1,8 +1,7 @@
 /*
- * BFCG Vehicle Claim for Arma Reforger 1.8.
- * Forked from the ScriptedComponentSerializer pattern used by CarKey2 by
- * NewbKodii and rewritten for BFCG fields on VehicleControllerComponent.
- * CarKey2 Workshop ID: 66D61CE15CC684A6; license: Arma Public License.
+ * Serializer pattern adapted from CarKey2 by NewbKodii (Arma Public License).
+ * Workshop: https://reforger.armaplatform.com/workshop/66D61CE15CC684A6
+ * Rewritten by BlackFox for claim fields on the native VehicleControllerComponent.
  */
 
 class BFCG_VehicleClaimComponentSerializer : ScriptedComponentSerializer
@@ -40,6 +39,7 @@ class BFCG_VehicleClaimComponentSerializer : ScriptedComponentSerializer
 		context.ReadValueDefault("locked", locked, false);
 		context.ReadValueDefault("expiresAt", expiresAt, 0);
 
+		// Discard expired claims; valid restored claims deliberately start locked regardless of their saved lock flag.
 		if (ownerIdentity.IsEmpty() || expiresAt <= System.GetUnixTime())
 			claim.BFCG_ClearClaimState();
 		else

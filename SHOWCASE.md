@@ -1,49 +1,60 @@
-# Claim and Garage showcase
+# Showcase guide
 
-World: `worlds/BFCG_Showcase.ent`
-Scenario: `Missions/BFCG_Showcase.conf`
+[Back to README](README.md) · [Validation checklist](VALIDATION.md)
 
-Open the world in Workbench World Editor and use Play Game. In the game scenario list,
-look for **BlackFox Claim and Garage - Showcase**.
+A small test scenario for vehicle claiming, personal garage storage and parking-spot allocation.
 
-The scene inherits the vanilla MpTest_Empty world and its real MPTestTerrain, required
-by GM terrain bounds checks. A flat 100 x 100 m platform is centered at X/Z 128/128, Y 20.
-It contains automatic US player spawn,
-one garage terminal, two linked parking spots and an M151A2 transport on the left spot.
-Both spots use Garage ID `BFCG_Garage_01`. The right spot starts empty.
-No AI opponents, objectives, economy or Merak resources are included.
+## Launch
 
-On a clean Workbench profile, the engine may request script authorization for vanilla
-operations such as BaseContainerTools.LoadContainer. Review those prompts manually.
+| Environment | How to start |
+|---|---|
+| In game | Select **BlackFox Claim and Garage - Showcase** in the scenario list. |
+| Workbench | Open [worlds/BFCG_Showcase.ent](worlds/BFCG_Showcase.ent) in World Editor and select **Play Game**. |
 
-## Manual test
+The scenario configuration is [Missions/BFCG_Showcase.conf](Missions/BFCG_Showcase.conf).
 
-1. Start a new session. Allow the configured initial restore delay (30 seconds by default).
-2. Walk to the M151A2 and claim it. Return to the terminal while the empty vehicle remains on its spot.
-3. Open Garage and choose **Park (Clear Inventory)**. This removes cargo and stores the vehicle.
-4. Retrieve the stored vehicle. It must use a free spot linked to this terminal.
-5. Block the first spot and repeat: retrieval must use the second spot.
-6. Block both spots: retrieval must refuse without removing the stored record.
-7. Add further vanilla vehicles in WB to check the world limit of three claims and the fourth-claim refusal.
+Use a separate test profile. On a clean Workbench profile, the engine may request script authorization for vanilla operations such as `BaseContainerTools.LoadContainer`; review those requests manually.
 
-The showcase does not change server limits and does not enable automatic world saves.
-Use a separate test profile. Garage data uses `$profile:BlackFoxClaimGarage/garage_data.txt`.
-Claim identities in an offline WB session depend on the available backend identity.
+## Scene layout
 
-The test world is intended for garage/claim interaction checks. Full persistence restart,
-crash recovery and multiplayer acceptance still follow `VALIDATION.md`.
+- Automatic US player spawn.
+- One garage terminal.
+- Two parking spots linked to Garage ID `BFCG_Garage_01`.
+- An M151A2 transport on the left spot; the right spot starts empty.
+- A flat 100 × 100 m platform centred at X/Z `128/128`, Y `20`.
 
-## GM compatibility
+The world inherits the vanilla `MpTest_Empty` world and its real `MPTestTerrain`. There are no AI opponents, objectives or economy systems in the scene.
 
-The real terrain comes from the vanilla parent world. Do not remove it or replace it
-with a mesh collider: GM placement calls GetTerrain(0, 0).GetTerrainBoundBox().
-The showcase keeps its original automatic player spawn and garage systems.
-A vanilla SCR_EditorSettingsEntity marks GM as part of this test scenario rules.
-In local Workbench play mode, use the available editor controls to open GM.
-Dedicated-server GM roles and permissions still follow the host's settings.
+## Basic garage test
 
-If the world was already open when updated, close the game session and reload the world.
-This scene update does not reset profile data or saved garage records.
+1. Start a new session and wait for data restoration: 30 seconds by default, plus any active native save loading.
+2. Claim the M151A2. Leave it on its parking spot and exit the vehicle.
+3. Return to the terminal, open **Garage** and select **Park (Clear Inventory)**.
+4. Confirm that the vehicle disappears from the world and appears as a garage card.
+5. Select the card to retrieve it. Confirm that the vehicle appears at a free spot linked to this terminal and remains owned by you.
 
-Validated locally: automatic player spawn, terrain bounds check (inside=true, outside=false),
-opening GM and placing an M151A2 on the free parking spot without the previous null exception.
+> Parking discards inventory. Retrieval uses prefab defaults and does not restore the vehicle's previous fuel, damage or cargo state.
+
+## Additional checks
+
+| Check | Expected result |
+|---|---|
+| Block the first spot and retrieve a stored vehicle. | The second free spot is used. |
+| Block both spots and request retrieval. | Retrieval is refused; the stored record remains. |
+| Try parking during initial restoration. | An English restoration message is shown. |
+| Try parking a vehicle claimed by another player. | Parking is refused. |
+| Try parking with a character or AI still inside. | Parking is refused; occupants remain in the world. |
+| Claim three world vehicles, then attempt a fourth. | The fourth claim is refused with default settings. |
+| Park one of those vehicles and try claiming again. | The garage record does not consume a world claim slot. |
+
+Add further vehicles through Workbench or the available GM editor to test the claim limit. Use real backend player identities for ownership tests; offline Workbench sessions may not have an identity available.
+
+## Game Master and persistence
+
+The scenario includes vanilla editor settings for local GM use. Dedicated-server GM access still follows the host's roles and permissions.
+
+Keep the inherited terrain: GM placement needs real terrain bounds, and a platform mesh alone cannot provide them.
+
+The showcase does not enable automatic world saves. Garage data uses `$profile:BlackFoxClaimGarage/garage_data.txt`; world persistence follows the host scenario's actual save/commit policy. See [VALIDATION.md](VALIDATION.md) for restart and recovery tests.
+
+After changing scripts or world resources, start a fresh test session. A claim created with an earlier, incorrect test identity is not automatically reassigned to another identity.

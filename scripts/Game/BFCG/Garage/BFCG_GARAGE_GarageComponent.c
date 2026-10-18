@@ -1,11 +1,9 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_GarageComponent.c
-//! BFCG_Garage - ScriptComponent пульта персонального гаража
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Changes: только персональный гараж (GroupFilter/Group-подкласс удалены).
-//! Компонент хранит только конфиг (GarageID), парковочной логики в нём нет.
-//------------------------------------------------------------------------------------------------
+/*
+ * Terminal configuration: GarageID links this terminal to its parking spots.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
 [ComponentEditorProps(category: "BFCG Garage", description: "Personal garage interaction point. Place on any prefab to make it a garage.")]
 class BFCG_GARAGE_GarageComponentClass : ScriptComponentClass {}

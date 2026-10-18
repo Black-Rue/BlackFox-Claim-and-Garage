@@ -1,31 +1,25 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_PlayerHelper.c
-//! BFCG_Garage - UID- и дистанс-хелперы
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//------------------------------------------------------------------------------------------------
+/*
+ * Player identity and local interaction-distance helpers.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
 class BFCG_GARAGE_PlayerHelper
 {
-	// Макс. дистанция игрок<->пульт для показа действия
+
 	static const float MAX_INTERACTION_DISTANCE = 2.5;
 
-	// Identity-UID игрока по entity. Server-only: GetPlayerIdentityId доступен
-	// только на authority.
 	static string GetUIDFromEntity(IEntity playerEntity)
 	{
-		if (!playerEntity)
+		if (!Replication.IsServer() || !playerEntity)
 			return string.Empty;
 		int playerID = GetGame().GetPlayerManager().GetPlayerIdFromControlledEntity(playerEntity);
 		if (playerID <= 0)
 			return string.Empty;
-		BackendApi backend = GetGame().GetBackendApi();
-		if (!backend)
-			return string.Empty;
-		return backend.GetPlayerIdentityId(playerID);
+		return BFCG_VehicleClaimState.ResolvePlayerIdentity(playerID);
 	}
 
-	// UID локально управляемого игрока (клиентская сторона, для UI)
 	static string GetLocalUID()
 	{
 		IEntity localEntity = SCR_PlayerController.GetLocalControlledEntity();
@@ -34,7 +28,6 @@ class BFCG_GARAGE_PlayerHelper
 		return GetUIDFromEntity(localEntity);
 	}
 
-	// Быстрый squared-distance чек "игрок у пульта"
 	static bool IsUserNearOwner(IEntity user, IEntity owner)
 	{
 		if (!user || !owner)

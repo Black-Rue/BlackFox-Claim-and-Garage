@@ -1,17 +1,13 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_PlayerControllerRpc.c
-//! BFCG_Garage - RPC-канал меню гаража (modded SCR_PlayerController)
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Changes: только персональный гараж; лимит из кода (MAX_VEHICLES);
-//! групповые табы, layout-RPC и Access-Lock удалены.
-//!
-//! Server-authoritative: UID берётся из собственной идентичности контроллера
-//! (никогда от клиента), дистанция/владение/спавн проверяются на сервере.
-//------------------------------------------------------------------------------------------------
+/*
+ * Garage request validation and reliable responses to the requesting player.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
 modded class SCR_PlayerController
 {
+    // Send display values to this controller's owner; server rules always use server settings.
     void BFCG_SendSettings()
     {
         if (!Replication.IsServer())
@@ -25,10 +21,7 @@ modded class SCR_PlayerController
         BFCG_Settings.ApplyDisplaySettings(worldLimit, garageLimit, hours);
     }
 
-	// Макс. дистанция игрок<->пульт для меню-запросов
 	protected static const float BFCG_GARAGE_MAX_REQUEST_DISTANCE = 10.0;
-
-	// ------------------------------------------------------------------ Client API (вызывается меню)
 
 	void BFCG_GARAGE_RequestContents(RplId garageId)
 	{
@@ -49,8 +42,6 @@ modded class SCR_PlayerController
 	{
 		Rpc(BFCG_GARAGE_RpcAsk_Park, garageId);
 	}
-
-	// ------------------------------------------------------------------ Server
 
 	[RplRpc(RplChannel.Reliable, RplRcver.Server)]
 	protected void BFCG_GARAGE_RpcAsk_Contents(RplId garageId)
@@ -74,7 +65,7 @@ modded class SCR_PlayerController
 			Rpc(BFCG_GARAGE_RpcDo_AddEntry, data.m_sVehicleID, data.m_rPrefab, available);
 		}
 
-		// Панель парковки: ТС на споте (префаб для картинки/имени, число для блокировки)
+		// Send a display snapshot; the parking request performs a fresh server scan.
 		BFCG_GARAGE_SpotScan scan = new BFCG_GARAGE_SpotScan();
 		string spotPrefab = string.Empty;
 		int spotCount = 0;
@@ -94,10 +85,16 @@ modded class SCR_PlayerController
 	protected void BFCG_GARAGE_RpcAsk_Park(RplId garageId)
 	{
 		BFCG_SendSettings();
+		if (!BFCG_VehicleClaimPersistence.IsReady())
+		{
+			Rpc(BFCG_GARAGE_RpcDo_ParkResult, BFCG_GARAGE_EParkResult.CLAIMS_RESTORING);
+			return;
+		}
+
 		string playerUID = BFCG_GARAGE_GetOwnUID();
 		if (playerUID.IsEmpty())
 		{
-			Rpc(BFCG_GARAGE_RpcDo_ParkResult, BFCG_GARAGE_EParkResult.FAILED);
+			Rpc(BFCG_GARAGE_RpcDo_ParkResult, BFCG_GARAGE_EParkResult.IDENTITY_NOT_READY);
 			return;
 		}
 
@@ -108,7 +105,7 @@ modded class SCR_PlayerController
 			return;
 		}
 
-		// ТС ищем свежо - клиентский стейт мог устареть
+		// Rescan on the server because the client's displayed vehicle may have changed.
 		BFCG_GARAGE_SpotScan scan = new BFCG_GARAGE_SpotScan();
 		if (!scan.Scan(garageCmp))
 		{
@@ -172,7 +169,6 @@ modded class SCR_PlayerController
 			return;
 		}
 
-		// Персональный гараж: только владелец
 		if (data.m_sOwnerUID != playerUID)
 		{
 			Print(string.Format("[BFCG_GARAGE_Rpc] Unpack denied (ownership): %1 by %2", vehicleID, playerUID), LogLevel.WARNING);
@@ -197,7 +193,7 @@ modded class SCR_PlayerController
 			return;
 		}
 
-		// Only the server-resolved terminal selects spawn spots; no client coordinates.
+		// The server-resolved terminal selects parking spots; the client supplies no spawn coordinates.
 		int result = manager.UnparkVehicle(vehicleID, playerUID, garageCmp);
 		Rpc(BFCG_GARAGE_RpcDo_UnpackResult, vehicleID, result);
 	}
@@ -240,8 +236,6 @@ modded class SCR_PlayerController
 		else
 			Rpc(BFCG_GARAGE_RpcDo_DeleteResult, BFCG_GARAGE_EDeleteResult.FAILED);
 	}
-
-	// ------------------------------------------------------------------ Client (Owner-ответы)
 
 	[RplRpc(RplChannel.Reliable, RplRcver.Owner)]
 	protected void BFCG_GARAGE_RpcDo_AddEntry(string vehicleID, string prefab, bool available)
@@ -291,15 +285,10 @@ modded class SCR_PlayerController
 			menu.OnNetDeleteResult(resultCode);
 	}
 
-	// ------------------------------------------------------------------ Server helpers
-
-	// UID из собственной идентичности контроллера - клиент не может подделать
+	// Derive identity from the requesting controller, never from a client-supplied UID.
 	protected string BFCG_GARAGE_GetOwnUID()
 	{
-		BackendApi backend = GetGame().GetBackendApi();
-		if (!backend)
-			return string.Empty;
-		return backend.GetPlayerIdentityId(GetPlayerId());
+		return BFCG_VehicleClaimState.ResolvePlayerIdentity(GetPlayerId());
 	}
 
 	protected BFCG_GARAGE_GarageComponent BFCG_GARAGE_ResolveGarage(RplId garageId)
@@ -313,6 +302,7 @@ modded class SCR_PlayerController
 		return BFCG_GARAGE_GarageComponent.Cast(garageEntity.FindComponent(BFCG_GARAGE_GarageComponent));
 	}
 
+	// Recheck current player position for every request, independently of the local action distance.
 	protected bool BFCG_GARAGE_IsNearGarage(BFCG_GARAGE_GarageComponent garageCmp)
 	{
 		IEntity controlled = GetControlledEntity();

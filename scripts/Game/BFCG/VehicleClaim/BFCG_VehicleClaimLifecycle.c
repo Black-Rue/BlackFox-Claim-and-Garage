@@ -1,7 +1,7 @@
 /*
- * BFCG Vehicle Claim for Arma Reforger 1.8.
- * Original BlackFox integration code. CarKey2 by NewbKodii was used as a
- * behavioural reference. Workshop ID: 66D61CE15CC684A6 (APL).
+ * BlackFox vehicle lifecycle and interaction-proxy integration.
+ * Behavioural reference: CarKey2 by NewbKodii (Arma Public License).
+ * Workshop: https://reforger.armaplatform.com/workshop/66D61CE15CC684A6
  */
 
 [ComponentEditorProps(category: "BlackFox/Vehicle Claim", description: "Marks the runtime interaction proxy attached to a vehicle.")]
@@ -48,8 +48,8 @@ modded class VehicleControllerComponent
 
 		if (m_pBFCGClaimActionProxy)
 		{
-			// During Workbench hot reload, replace proxies created from the previous
-			// (non-interactable) prefab revision without restarting the whole editor.
+
+			// Replace stale proxy prefab revisions after a script reload.
 			BFCG_VehicleClaimActionProxyComponent proxyMarker = BFCG_VehicleClaimActionProxyComponent.Cast(
 				m_pBFCGClaimActionProxy.FindComponent(BFCG_VehicleClaimActionProxyComponent));
 			if (proxyMarker && proxyMarker.BFCG_IsCurrentRevision())
@@ -77,8 +77,7 @@ modded class VehicleControllerComponent
 		params.Transform[0] = "1 0 0";
 		params.Transform[1] = "0 1 0";
 		params.Transform[2] = "0 0 1";
-		// Keep the action reference near the vehicle; the proxy has no collider and
-		// is presented through the selected native vehicle context.
+
 		params.Transform[3] = "0 1 0";
 		m_pBFCGClaimActionProxy = GetGame().SpawnEntityPrefab(proxyResource, owner.GetWorld(), params);
 		if (!m_pBFCGClaimActionProxy)
@@ -91,7 +90,6 @@ modded class VehicleControllerComponent
 		BFCG_VehicleClaimActionProxySystem.ReportSpawn(owner);
 	}
 
-	// The server spawns the child; clients discover the replicated action locally.
 	BFCG_ToggleVehicleLockUserAction BFCG_GetClaimAction()
 	{
 		IEntity owner = GetOwner();
@@ -148,8 +146,7 @@ modded class VehicleControllerComponent
 		BFCG_SetGarbageProtection(false);
 	}
 
-	// BlackFox: пока клейм активен, ТС защищено от ванильного SCR_GarbageSystem.
-	// После снятия/истечения клейма техника снова становится доступной уборщику.
+	// Active claims protect against vanilla garbage collection; releasing a claim removes that protection.
 	protected void BFCG_SetGarbageProtection(bool protect)
 	{
 		if (!Replication.IsServer())
@@ -166,6 +163,7 @@ modded class VehicleControllerComponent
 
 }
 
+// The server attaches proxies; clients discover replicated children through the vehicle context.
 class BFCG_VehicleClaimActionProxySystem
 {
 	protected static int s_iLoggedSpawns;
@@ -206,10 +204,8 @@ class BFCG_VehicleClaimActionProxySystem
 	}
 }
 
-// Server-side fallback cleanup for every vehicle that has no active claim.
-// The first sweep that observes an unclaimed vehicle starts its 360-minute
-// lifetime. While that timer is running, the vanilla garbage system is kept
-// away so its shorter rule cannot remove the vehicle before this deadline.
+// Optional cleanup starts a configured grace interval on first observation of an unclaimed vehicle.
+// Vanilla garbage collection is suppressed during this interval to preserve the configured lifetime.
 class BFCG_UnclaimedVehicleCleanupSystem
 {
 
@@ -321,7 +317,7 @@ modded class SCR_BaseGameMode
 			GetGame().GetCallqueue().CallLater(BFCG_UnclaimedVehicleCleanupSystem.Sweep, 1000, false);
 			GetGame().GetCallqueue().CallLater(BFCG_UnclaimedVehicleCleanupSystem.Sweep, 300000, true);
 			BFCG_VehicleClaimPersistence.BeginRestore();
-			// Wait for native persistence to restore vehicles and claim metadata.
+
 			GetGame().GetCallqueue().CallLater(BFCG_VehicleClaimPersistence.Restore, BFCG_Settings.Get().initialRestoreDelaySeconds * 1000, false);
 		}
 		else

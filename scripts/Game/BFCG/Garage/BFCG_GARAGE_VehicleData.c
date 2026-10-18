@@ -1,14 +1,11 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_VehicleData.c
-//! BFCG_Garage - данные хранимого ТС + JSON-структуры персистентности
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Changes: только персональный гараж (groupID удалён), английские комментарии/строки.
-//! 2026-08-12: + m_aTrunk / поле trunk в JSON - содержимое багажника ТС
-//! (перенос решения Everon, см. BFCG_GARAGE_VehicleCargo.c). Старые записи без
-//! поля загружаются с пустым trunk - откат безопасен для данных.
-//------------------------------------------------------------------------------------------------
+/*
+ * Stored vehicle records and their JSON representation.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
+// Parking stores the vehicle prefab and ownership record, not cargo or full live vehicle state.
 class BFCG_GARAGE_VehicleData
 {
 	protected static int s_iIDSequence;
@@ -55,7 +52,6 @@ class BFCG_GARAGE_VehicleData
 		data.m_vMatUp      = mat[1];
 		data.m_vMatForward = mat[2];
 
-		// Позиция - от спота (центрированная), иначе от самого ТС
 		if (spawnEntity)
 			data.m_vPosition = spawnEntity.GetOrigin();
 		else
@@ -63,7 +59,8 @@ class BFCG_GARAGE_VehicleData
 
 		int ts = System.GetUnixTime();
 		data.m_iParkedAt = ts;
-		// Avoid duplicate IDs when two parking requests arrive in the same second.
+
+		// A sequence suffix prevents ID collisions when parking requests share the same Unix second.
 		while (true)
 		{
 			s_iIDSequence++;
@@ -79,20 +76,9 @@ class BFCG_GARAGE_VehicleData
 			data.m_sVehicleName = ResourceNameToDisplayName(data.m_rPrefab);
 		}
 
-		//--- Содержимое багажника (перенос решения Everon, BFCG_GARAGE_VehicleCargo)
-		//--- ОТКЛЮЧЕНО 2026-08-12: мировые ТС теперь персистит ваниль (BFCG_MerakPersistence.conf,
-		//--- коллекция Vehicle), сохранение багажника в гараже отключено. Класс
-		//--- BFCG_GARAGE_VehicleCargo и поле trunk в JSON оставлены для возможного
-		//--- использования в дальнейшем — чтобы включить, раскомментировать блок ниже
-		//--- и вызов RestoreCargo в BFCG_GARAGE_GarageManager.UnparkVehicle.
-		//array<ref BFCG_GARAGE_ItemNode> trunk = BFCG_GARAGE_VehicleCargo.SerializeCargo(vehicle);
-		//if (trunk)
-		//	data.m_aTrunk = trunk;
-
 		return data;
 	}
 
-	// "{GUID}Prefabs/Vehicles/Car.et" -> "Car"
 	static string ResourceNameToDisplayName(ResourceName rn)
 	{
 		string s = rn;
@@ -115,7 +101,7 @@ class BFCG_GARAGE_VehicleData
 	}
 }
 
-//--- Одно ТС в файле хранения ---
+// The trunk field remains readable for record compatibility; retrieval ignores stored cargo.
 class BFCG_GARAGE_VehicleDataJson : JsonApiStruct
 {
 	string vehicleID;
@@ -196,15 +182,13 @@ class BFCG_GARAGE_VehicleDataJson : JsonApiStruct
 		data.m_vMatUp      = Vector(matUpX,    matUpY,    matUpZ);
 		data.m_vMatForward = Vector(matFwdX,   matFwdY,   matFwdZ);
 		data.m_iParkedAt   = parkedAt;
-		//--- У старых записей (до появления trunk) массив остаётся пустым:
-		//--- при вызове такое ТС придёт без дефолтного префабного груза
+
 		if (trunk)
 			data.m_aTrunk = trunk;
 		return data;
 	}
 }
 
-//--- Файл хранения гаража ---
 class BFCG_GARAGE_GarageStorageJson : JsonApiStruct
 {
 	ref array<ref BFCG_GARAGE_VehicleDataJson> vehicles;

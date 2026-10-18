@@ -1,11 +1,11 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_SpotScan.c
-//! BFCG_Garage - серверный скан спота: найти ТС на парковочных спотах гаража
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Инстанс-класс: Query-callback не может быть static. Только для сервера.
-//------------------------------------------------------------------------------------------------
+/*
+ * Finds a parking candidate among spots linked to the current terminal.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
+// Use the first occupied linked spot. Vehicle count refers to that spot, not the whole terminal.
 class BFCG_GARAGE_SpotScan
 {
 	protected IEntity m_NearestVehicle;
@@ -14,7 +14,6 @@ class BFCG_GARAGE_SpotScan
 	protected int m_iQueryCount;
 	protected vector m_vQueryCenter;
 
-	// true = ТС найдено; детали через GetVehicle()/GetSpot()/GetVehicleCount()
 	bool Scan(BFCG_GARAGE_GarageComponent garageCmp)
 	{
 		m_NearestVehicle = null;
@@ -66,7 +65,6 @@ class BFCG_GARAGE_SpotScan
 		return m_ActiveSpot;
 	}
 
-	// Число ТС в радиусе спота, на котором найдено ТС (>1 = парковка заблокирована)
 	int GetVehicleCount()
 	{
 		return m_iVehicleCount;

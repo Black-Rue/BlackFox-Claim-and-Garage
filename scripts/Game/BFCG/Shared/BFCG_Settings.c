@@ -1,4 +1,9 @@
-// Standalone server configuration. Restart the game session after editing settings.json.
+/*
+ * Standalone server settings by BlackFox.
+ * Configuration: $profile:BlackFoxClaimGarage/settings.json. Restart the session after editing.
+ * Invalid or unreadable settings disable garage/claim operations without overwriting the existing file.
+ */
+
 class BFCG_Settings : JsonApiStruct
 {
     static const string DATA_DIR = "$profile:BlackFoxClaimGarage";
@@ -84,9 +89,10 @@ class BFCG_Settings : JsonApiStruct
         s_Valid = true;
         Print("[BFCG] Settings loaded: world=" + cfg.maxWorldClaims + " garage=" + cfg.maxGarageVehicles);
     }
+    // Owner RPC updates display values only; server authority never reads this client cache.
     static void ApplyDisplaySettings(int worldLimit, int garageLimit, int hours)
     {
-        // Called by Reliable Owner RPC; server-side authority always reads its own file.
+
         if (Replication.IsServer())
             return;
         Get().maxWorldClaims = worldLimit;
@@ -94,4 +100,3 @@ class BFCG_Settings : JsonApiStruct
         Get().claimDurationHours = hours;
     }
 }
-

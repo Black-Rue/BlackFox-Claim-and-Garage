@@ -1,14 +1,12 @@
 /*
- * BFCG Vehicle Claim for Arma Reforger 1.8.
- * Forked in concept from the claim, lock and absolute Unix expiry behaviour
- * of CarKey2 by NewbKodii. Ownership by Bohemia identity and standalone
- * persistence on the standard vehicle controller are BlackFox additions.
- * CarKey2 Workshop ID: 66D61CE15CC684A6; license: Arma Public License.
+ * BlackFox vehicle claim state and server-side ownership rules.
+ * Claim, lock and absolute Unix expiry behaviour conceptually based on CarKey2 by NewbKodii (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/66D61CE15CC684A6
+ * Persistent Bohemia identity, world limits and native-controller integration are BlackFox additions.
  */
 
 class BFCG_VehicleClaimState
 {
-
 
 	protected static ref array<VehicleControllerComponent> s_aVehicles = {};
 	protected static ref map<int, string> s_mPlayerIdentities = new map<int, string>();
@@ -72,24 +70,28 @@ class BFCG_VehicleClaimState
 		return Read(component, ownerIdentity, expiresAt, locked) && expiresAt > System.GetUnixTime() && locked;
 	}
 
+	// Claim and Garage must use the same real BI identity. The vanilla utility can
+	// generate a temporary Peer Tool UID before the backend identity becomes available.
 	static string ResolvePlayerIdentity(int playerId)
 	{
-		if (playerId <= 0)
+		if (!Replication.IsServer() || playerId <= 0)
 			return string.Empty;
-
-		string identity;
-		if (s_mPlayerIdentities.Find(playerId, identity) && !identity.IsEmpty())
-			return identity;
 
 		BackendApi backendApi = GetGame().GetBackendApi();
-		if (!backendApi)
-			return string.Empty;
+		string identity;
+		if (backendApi)
+			identity = backendApi.GetPlayerIdentityId(playerId);
 
-		identity = backendApi.GetPlayerIdentityId(playerId);
 		if (!identity.IsEmpty())
+		{
 			s_mPlayerIdentities.Set(playerId, identity);
+			return identity;
+		}
 
-		return identity;
+		// Disconnect handling may run after the backend has released the identity.
+		if (s_mPlayerIdentities.Find(playerId, identity))
+			return identity;
+		return string.Empty;
 	}
 
 	static string ResolvePlayerIdentity(IEntity playerEntity)
@@ -144,8 +146,7 @@ class BFCG_VehicleClaimState
 		return !IsOwner(component, playerEntity);
 	}
 
-	// Count authoritative live claims, never garage records or client caches.
-	// Excluding the target makes a refresh of an existing claim slot-neutral.
+	// Count authoritative live claims, excluding garage records and the optional target being refreshed.
 	static int CountWorldClaims(string playerIdentity, VehicleControllerComponent exclude = null)
 	{
 		if (!Replication.IsServer() || playerIdentity.IsEmpty())
@@ -352,6 +353,7 @@ class BFCG_VehicleClaimState
 			PushStateToController(component, controller, playerIdentity);
 	}
 
+	// Relock owned vehicles without extending expiry, then release the transient player-ID cache.
 	static void HandlePlayerDisconnected(int playerId)
 	{
 		if (!Replication.IsServer())
@@ -373,14 +375,12 @@ class BFCG_VehicleClaimState
 		s_mPlayerIdentities.Remove(playerId);
 	}
 
+	// Also reconcile proxies for editor-placed and third-party vehicles during periodic sweeps.
 	static void SweepExpiredClaims()
 	{
 		if (!Replication.IsServer())
 			return;
 
-		// The expiry sweep already exists in running sessions and survives script
-		// hot reloads. Reconcile interaction proxies here as a second lifecycle
-		// path for editor-placed and third-party vehicles.
 		BFCG_VehicleClaimActionProxySystem.EnsureAllVehicleProxies();
 
 		for (int i = s_aVehicles.Count() - 1; i >= 0; i--)
@@ -397,7 +397,6 @@ class BFCG_VehicleClaimState
 			ReleaseIfExpired(component);
 		}
 
-		// Request native transient saves for active claims.
 		BFCG_VehicleClaimPersistence.Snapshot();
 	}
 
@@ -435,7 +434,6 @@ class BFCG_VehicleClaimState
 		BFCG_VehicleClaimPersistence.SaveClaim(component);
 	}
 
-	//! Active claims used by native persistence snapshots.
 	static void GetClaimedComponents(out array<VehicleControllerComponent> outComponents)
 	{
 		outComponents.Clear();

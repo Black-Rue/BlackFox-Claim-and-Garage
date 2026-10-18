@@ -1,4 +1,8 @@
-// World entities and claim metadata share the vanilla save-game lifecycle.
+/*
+ * BlackFox integration with the vanilla save-game lifecycle for world vehicles and claim metadata.
+ * Native persistence owns world restoration and save commits; this class gates mutations and requests snapshots.
+ */
+
 class BFCG_VehicleClaimPersistence
 {
     protected static bool s_Ready;
@@ -6,6 +10,7 @@ class BFCG_VehicleClaimPersistence
     {
         if (!Replication.IsServer() || !s_Ready || !BFCG_Settings.IsValid())
             return false;
+        // Only an active save undergoing native loading blocks readiness; a session without a save must still work.
         SaveGameManager saves = GetGame().GetSaveGameManager();
         return !saves || !saves.GetActiveSave() || !SCR_PersistenceSystem.IsLoadInProgress();
     }
@@ -35,10 +40,12 @@ class BFCG_VehicleClaimPersistence
         }
         Print("[BFCG] Native claim restore ready; garage retrieval enabled");
     }
+    // Native deserialization registers the restored controller directly; no prefab/position matching is needed.
     static void ReconcileWorldClaims()
     {
-        // Native Deserialize registers the exact restored controller; no prefab/position search.
+
     }
+    // Request a native transient save. The game mode's save policy controls durable commits.
     static void SaveClaim(VehicleControllerComponent component)
     {
         if (!IsReady() || !component || !component.GetOwner() || component.GetOwner().IsDeleted())

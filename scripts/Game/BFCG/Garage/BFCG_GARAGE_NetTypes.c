@@ -1,12 +1,10 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_NetTypes.c
-//! BFCG_Garage - сетевые типы меню: запись гаража + коды результатов
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Changes: групповые типы удалены (только персональный гараж).
-//------------------------------------------------------------------------------------------------
+/*
+ * Garage RPC result codes and client-side list entries.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
-//--- Одна запись меню гаража ---
 class BFCG_GARAGE_MenuEntry
 {
 	string m_sVehicleID;
@@ -21,7 +19,7 @@ class BFCG_GARAGE_MenuEntry
 	}
 }
 
-//--- Коды результатов (RPC -> клиент) ---
+// Enum ordering is part of the client/server RPC contract; keep both sides in sync.
 enum BFCG_GARAGE_EParkResult
 {
 	SUCCESS,
@@ -31,7 +29,9 @@ enum BFCG_GARAGE_EParkResult
 	GARAGE_FULL,
 	TOO_FAR,
 	OWNED_BY_ANOTHER_PLAYER,
-	VEHICLE_OCCUPIED
+	VEHICLE_OCCUPIED,
+	CLAIMS_RESTORING,
+	IDENTITY_NOT_READY
 }
 
 enum BFCG_GARAGE_EUnpackResult

@@ -1,12 +1,9 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_ParkingSpotComponent.c
-//! BFCG_Garage - пассивная компонента парковочного маркера
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Changes: BFCG-нейминг; визуалы - наши префабы.
-//! Своя UserAction отсутствует - парковка идёт через меню пульта (RPC).
-//! Тик каждые 250 мс через CallLater, визуальные состояния: скрыт/белый/зелёный/красный.
-//------------------------------------------------------------------------------------------------
+/*
+ * Parking-spot registration and occupancy visuals, grouped by GarageID.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
 [ComponentEditorProps(category: "BFCG Garage", description: "Parking spot marker: players leave the vehicle here. Parking is done at the garage point menu.")]
 class BFCG_GARAGE_ParkingSpotComponentClass : ScriptComponentClass {}
@@ -54,9 +51,10 @@ class BFCG_GARAGE_ParkingSpotComponent : ScriptComponent
 		m_Owner = owner;
 		m_iVisualState = VISUAL_STATE_HIDDEN;
 
+		// Show the placement visual in Workbench without registering a runtime parking spot.
 		if (!GetGame().InPlayMode())
 		{
-			// Редактор: активный визуал показываем постоянно как отладочный маркер радиуса
+
 			if (!m_rActiveVisualPrefab.IsEmpty())
 				m_ActiveVisual = SpawnVisualAtOwner(m_rActiveVisualPrefab, m_fParkRadius * 2.0);
 			return;

@@ -1,11 +1,6 @@
 /*
- * BFCG Vehicle Claim for Arma Reforger 1.8.
- * Forked in concept from the replicated lock and absolute Unix expiry
- * behaviour of CarKey2 by NewbKodii. Claim fields now extend the standard
- * VehicleControllerComponent and contain no CarKey2 runtime dependency.
- * CarKey2 Workshop ID: 66D61CE15CC684A6; license: Arma Public License.
+ * BlackFox claim integration, conceptually based on CarKey2 by NewbKodii (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/66D61CE15CC684A6
+ * Claim fields extend VehicleControllerComponent in BFCG_VehicleClaimLifecycle.c.
+ * This avoids requiring third-party vehicle prefabs to inherit a custom claim component.
  */
-
-// Claim data is stored on the engine-provided VehicleControllerComponent.
-// See BFCG_VehicleClaimLifecycle.c. This avoids requiring every third-party
-// vehicle prefab to inherit a custom component from Vehicle_Base.et.

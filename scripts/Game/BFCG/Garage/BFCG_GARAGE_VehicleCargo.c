@@ -1,36 +1,9 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_VehicleCargo.c
-//! BFCG_Garage - сериализация/восстановление содержимого багажника ТС
-//! при постановке в гараж и вызове из него.
-//!
-//! Перенос прод-решения Everon (BlackFox 2026-07-31, BFCG_VehicleCargo из
-//! BFCG_VehiclePersistence.c + интеграция BFCG_GarageCarKeyGate).
-//! Отличия от Everon-версии:
-//!  - убрана привязка CarKey2 (Key_LockComponent) - мода нет на Merak;
-//!  - имена/логи в неймспейсе BFCG_GARAGE.
-//!
-//! Семантика (как в Everon v2.2, BF-010 «трещотка» префабного груза):
-//!  - RestoreCargo ПЕРЕД вставкой сохранённого полностью снимает дефолтный
-//!    груз свежего префаба (ТС и вложенных контейнеров). Иначе каждый
-//!    цикл парк/анпарк добавлял бы префабный набор к багажнику.
-//!  - Пустой сохранённый trunk значим: сознательно опустошённый багажник
-//!    остаётся пустым. ВНИМАНИЕ: ТС, поставленные в гараж ДО появления
-//!    этого кода, имеют пустой trunk в старых записях - при первом вызове
-//!    после обновления они придут БЕЗ дефолтного префабного груза.
-//!
-//! Двойная защита от дублей лута: при сериализации ведётся список
-//! посещённых энтити (пересечения между хранилищами возможны).
-//!
-//! Ограничения (как в Everon): не сохраняются патроны в магазинах,
-//! состояние/прочность предметов, обвес на оружии в багажнике (префабы
-//! восстанавливаются, внутреннее состояние - нет).
-//!
-//! Только сервер (вызывается из GarageManager.ParkVehicle/UnparkVehicle,
-//! которые сами серверные). Статические поля: скриптовая VM однопоточна -
-//! общий список visited безопасен (очищается на каждый вызов).
-//------------------------------------------------------------------------------------------------
+/*
+ * Legacy cargo-tree serialization helpers by BlackFox.
+ * Retained for the garage record format; current parking and retrieval do not call these helpers.
+ * Only prefab nesting is represented; item condition, ammunition and other runtime state are not saved.
+ */
 
-//! Узел лута: предмет + вложенные предметы (рюкзак с содержимым и т.п.)
 class BFCG_GARAGE_ItemNode : JsonApiStruct
 {
 	string prefab;
@@ -44,21 +17,15 @@ class BFCG_GARAGE_ItemNode : JsonApiStruct
 	}
 }
 
-//------------------------------------------------------------------------------------------------
-//! Общий сериализатор багажника ТС (префабы, рекурсивно)
 sealed class BFCG_GARAGE_VehicleCargo
 {
 	protected static ref array<IEntity> s_Visited;
 
-	//------------------------------------------------------------------------------------------------
-	//! Сериализация всего содержимого хранилищ ТС (null - хранилищ нет)
 	static array<ref BFCG_GARAGE_ItemNode> SerializeCargo(IEntity vehicle)
 	{
 		if (!vehicle)
 			return null;
 
-		//--- Базовый класс: контейнеры несут InventoryStorageManagerComponent,
-		//--- а не SCR_-вариант (каст к SCR_ обрывал рекурсию - проверено в проде)
 		InventoryStorageManagerComponent vehInv = InventoryStorageManagerComponent.Cast(vehicle.FindComponent(InventoryStorageManagerComponent));
 		if (!vehInv)
 		{
@@ -102,8 +69,7 @@ sealed class BFCG_GARAGE_VehicleCargo
 		return trunk;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Рекурсивная сериализация предмета и его содержимого
+	// Limit recursion and skip previously visited items to avoid duplicate records from shared storages.
 	protected static BFCG_GARAGE_ItemNode SerializeItem(IEntity item, int depth)
 	{
 		if (!item || !item.GetPrefabData() || depth > 4)
@@ -141,11 +107,7 @@ sealed class BFCG_GARAGE_VehicleCargo
 		return node;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Восстановление содержимого в хранилища ТС.
-	//! ПЕРЕД вставкой сохранённого дефолтный груз свежего префаба снимается
-	//! полностью - иначе каждый цикл парк/анпарк добавлял бы префабный набор.
-	//! Пустой trunk значим: сознательно опустошённый багажник остаётся пустым.
+	// This legacy helper clears prefab cargo before restoration; current garage retrieval does not call it.
 	static void RestoreCargo(IEntity vehicle, array<ref BFCG_GARAGE_ItemNode> trunk)
 	{
 		if (!vehicle || !trunk)
@@ -159,7 +121,6 @@ sealed class BFCG_GARAGE_VehicleCargo
 			return;
 		}
 
-		//--- Снести дефолтный груз префаба ДО вставки сохранённого
 		int stripped = StripStorageContent(vehInv);
 
 		int ok = 0;
@@ -173,8 +134,7 @@ sealed class BFCG_GARAGE_VehicleCargo
 			BFCG_PrefabName(vehicle), stripped, ok, trunk.Count()));
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Спавн предмета у ТС и вставка в хранилище (рекурсивно для содержимого)
+	// If insertion fails, the spawned item is left near the target and the failure is logged.
 	protected static bool RestoreItem(BFCG_GARAGE_ItemNode node, InventoryStorageManagerComponent parentInv)
 	{
 		if (!node || node.prefab.IsEmpty() || !parentInv)
@@ -196,7 +156,6 @@ sealed class BFCG_GARAGE_VehicleCargo
 		if (!item)
 			return false;
 
-		//--- Не вставилось - остаётся лежать у ТС, предмет не теряется
 		if (!InsertAnywhere(parentInv, item))
 		{
 			Print(string.Format("[BFCG_GARAGE] VehicleCargo RESTORE: предмет %1 не поместился в хранилище", node.prefab), LogLevel.WARNING);
@@ -206,8 +165,7 @@ sealed class BFCG_GARAGE_VehicleCargo
 		InventoryStorageManagerComponent itemInv = InventoryStorageManagerComponent.Cast(item.FindComponent(InventoryStorageManagerComponent));
 		if (itemInv)
 		{
-			//--- Дефолтное содержимое контейнера снять ДО восстановления
-			//--- сохранённого (та же «трещотка», что и на уровне ТС)
+
 			StripStorageContent(itemInv);
 
 			foreach (BFCG_GARAGE_ItemNode childNode : node.items)
@@ -217,9 +175,7 @@ sealed class BFCG_GARAGE_VehicleCargo
 		return true;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Снять ВСЁ текущее содержимое хранилищ менеджера (дефолтный груз
-	//! свежего префаба). Возвращает число удалённых корневых предметов.
+	// Deduplicate items exposed by multiple storages before recursive deletion.
 	protected static int StripStorageContent(InventoryStorageManagerComponent inv)
 	{
 		if (!inv)
@@ -261,9 +217,7 @@ sealed class BFCG_GARAGE_VehicleCargo
 		return removed;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Вставка предмета: сначала штатный TryInsertItem (SCR_-менеджер ТС),
-	//! при недоступности - перебор хранилищ TryInsertItemInStorage
+	// Nested containers may have only the base inventory manager; use its storages as a fallback.
 	protected static bool InsertAnywhere(InventoryStorageManagerComponent inv, IEntity item)
 	{
 		SCR_InventoryStorageManagerComponent scrInv = SCR_InventoryStorageManagerComponent.Cast(inv);
@@ -284,8 +238,6 @@ sealed class BFCG_GARAGE_VehicleCargo
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Имя префаба для логов (безопасно к null)
 	protected static string BFCG_PrefabName(IEntity ent)
 	{
 		if (!ent || !ent.GetPrefabData())

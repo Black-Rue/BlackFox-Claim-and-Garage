@@ -1,27 +1,14 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_GarageMenuUI.c
-//! BFCG_Garage - fullscreen-меню персонального гаража (сетка карточек с 3D-превью)
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Changes: только персональный режим (групповые табы удалены), лимит 12 из кода,
-//! английские строки, двухэтапное подтверждение удаления. Один статический таб "Personal (N/12)".
-//!
-//! - ChimeraMenuBase-меню, зарегистрировано как ChimeraMenuPreset.BFCG_GarageMenu
-//! - Чистый клиентский view: контент приходит по RPC (modded SCR_PlayerController)
-//! - Контекст гаража (RplId) ставится UserAction перед OpenMenu
-//! - Ошибки парковки/выдачи - текстом в ErrorText
-//! - Панель парковки справа: картинка + имя ТС на споте, кнопка Park
-//! - Недоступные ТС (мод снят): иконка запрета, выдача заблокирована, удаление доступно
-//! - Gamepad: начальный фокус + восстановление после rebuild, GamepadScroll,
-//!   hint-панель Select/Back (SCR_InputButtonComponent)
-//------------------------------------------------------------------------------------------------
+/*
+ * Client-side personal garage view. Server RPCs provide records and operation results.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
-//------------------------------------------------------------------------------------------------
-//! Скриптовая вариация ванильной GamepadScroll-компоненты: при `new` дефолты
-//! [Attribute] не применяются, флаги ставим до super.HandlerAttached.
+// Components created with new do not receive Attribute defaults; initialise flags before attachment.
 class BFCG_GARAGE_GamepadScrollComponent : SCR_GamepadScrollComponent
 {
-	//------------------------------------------------------------------------------------------------
+
 	override void HandlerAttached(Widget w)
 	{
 		m_bTryFindNewFocus = true;
@@ -35,21 +22,20 @@ class BFCG_GARAGE_GamepadScrollComponent : SCR_GamepadScrollComponent
 class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 {
 	protected static const ResourceName CARD_LAYOUT = "{E44B148A7EA37AF4}UI/layouts/Menus/BFCG_GarageCard.layout";
-	// Ванильный manager-префаб (GUID из SCR_LoadoutPreviewComponent)
+
 	protected static const ResourceName PREVIEW_MANAGER_PREFAB = "{9F18C476AB860F3B}Prefabs/World/Game/ItemPreviewManager.et";
-	// Ванильная текстовая кнопка (та же ссылка, что ButtonClose в layout)
+
 	protected static const ResourceName TAB_BUTTON_LAYOUT = "{75C912A1C89BE6C2}UI/layouts/WidgetLibrary/Buttons/WLib_ButtonText.layout";
-	// Ванильная навигационная кнопка hint-панели
+
 	protected static const ResourceName HINT_BUTTON_LAYOUT = "{08CF3B69CB1ACBC4}UI/layouts/WidgetLibrary/WLib_NavigationButton.layout";
-	// 4 колонки: у сетки только 2/3 ширины из-за панели парковки
+
 	protected static const int GRID_COLUMNS = 4;
 	protected static const int DELETE_CONFIRM_TIMEOUT_MS = 3000;
 
-	// Контекст от UserAction (static, т.к. OpenMenu параметров не принимает)
+	// OpenMenu has no terminal argument, so the local action supplies the context before opening.
 	protected static RplId s_ContextGarageId;
 	protected static bool s_bContextSet = false;
 
-	// Текущий открытый инстанс - цель owner-RPC ответов контроллера
 	protected static BFCG_GARAGE_GarageMenuUI s_OpenInstance;
 
 	protected ItemPreviewManagerEntity m_PreviewManager;
@@ -58,7 +44,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 	protected Widget m_wTabBar;
 	protected TextWidget m_wErrorText;
 
-	// Панель парковки (правая треть)
 	protected ImageWidget m_wParkImage;
 	protected ItemPreviewWidget m_wParkPreview;
 	protected TextWidget m_wParkNameText;
@@ -68,32 +53,28 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 	protected int m_iSpotVehicleCount;
 	protected bool m_bParkPending;
 
-	// Буфер приёма: AddEntry заполняет, ContentsComplete строит таб + сетку
+	// Buffer owner-RPC entries until ContentsComplete, then rebuild the view.
 	protected ref array<ref BFCG_GARAGE_MenuEntry> m_aEntries = {};
 
-	// Таб один (Personal), но массив оставляем для навигации/фокуса
 	protected ref array<SCR_ButtonTextComponent> m_aTabButtons = {};
 	protected string m_sActiveTabName;
 
-	// Ссылки на компоненты карточек
 	protected ref array<ref BFCG_GARAGE_GarageCardComponent> m_aCards = {};
 
-	// Кнопки удаления карточек: параллельные массивы компонента <-> VehicleID
+	// Parallel arrays map each delete handler to its stored vehicle ID.
 	protected ref array<BFCG_GARAGE_CardDeleteComponent> m_aDeleteComps = {};
 	protected ref array<string> m_aDeleteVehicleIDs = {};
 
-	// Защита от двойного клика до ответа сервера
+	// Suppress repeated requests while awaiting server results; these flags do not grant authority.
 	protected bool m_bUnpackPending = false;
 	protected bool m_bDeletePending = false;
 	protected BFCG_GARAGE_CardDeleteComponent m_ArmedDeleteComp;
 
-	// Gamepad
 	protected ref BFCG_GARAGE_GamepadScrollComponent m_GamepadScroll;
 	protected bool m_bBackHintWired;
 	protected bool m_bBackListenerRegistered;
 	protected bool m_bDeviceListenerRegistered;
 
-	// Фокус-стиль: белая кнопка с оранжевым текстом; дефолт кэшируем с первого таба
 	protected SCR_ButtonTextComponent m_CloseButton;
 	protected bool m_bDefaultStyleCached;
 	protected ref Color m_DefaultBg;
@@ -103,22 +84,17 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 	protected ref Color m_DefaultBgClicked;
 	protected ref Color m_DefaultTextColor;
 
-	//------------------------------------------------------------------------------------------------
-	//! Вызывается UserAction перед OpenMenu: какая гараж открывается
 	static void SetGarageContext(RplId garageId)
 	{
 		s_ContextGarageId = garageId;
 		s_bContextSet = true;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Цель owner-RPC modded SCR_PlayerController
 	static BFCG_GARAGE_GarageMenuUI GetOpenInstance()
 	{
 		return s_OpenInstance;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override void OnMenuOpen()
 	{
 		super.OnMenuOpen();
@@ -174,7 +150,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 
 		InitGamepadSupport();
 
-		// ESC / Gamepad-B закрывает меню (fallback, если Back-hint не завёлся)
+		// Fallback for layouts where the Back hint could not register its own action.
 		if (!m_bBackHintWired)
 		{
 			GetGame().GetInputManager().AddActionListener(UIConstants.MENU_ACTION_BACK, EActionTrigger.DOWN, OnMenuBack);
@@ -185,7 +161,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		Print("[BFCG_GARAGE_GarageMenuUI] Menu opened", LogLevel.NORMAL);
 	}
 
-	//------------------------------------------------------------------------------------------------
+	// Unregister input listeners and cancel the delete timer before releasing menu references.
 	override void OnMenuClose()
 	{
 		if (s_OpenInstance == this)
@@ -212,10 +188,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		super.OnMenuClose();
 	}
 
-	// ------------------------------------------------------------------ Панель парковки
-
-	//------------------------------------------------------------------------------------------------
-	//! ContentSplit (сетка 2/3, панель 1/3 через FillWeight) + кнопка Park
 	protected void InitParkPanel()
 	{
 		Widget cardScroll = m_wRoot.FindAnyWidget("CardScroll");
@@ -285,23 +257,18 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		m_ParkButton.m_OnFocusLost.Insert(OnMenuButtonFocusLost);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnParkButtonFocus(Widget w)
 	{
 		if (m_wParkHoverBorder)
 			m_wParkHoverBorder.SetVisible(true);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnParkButtonFocusLost(Widget w)
 	{
 		if (m_wParkHoverBorder)
 			m_wParkHoverBorder.SetVisible(false);
 	}
 
-	// ------------------------------------------------------------------ Стили кнопок
-
-	//------------------------------------------------------------------------------------------------
 	protected void StyleButtonOrange(SCR_ButtonTextComponent buttonComp)
 	{
 		if (!buttonComp)
@@ -317,7 +284,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		}
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void StyleButtonFocus(SCR_ButtonTextComponent buttonComp)
 	{
 		if (!buttonComp)
@@ -330,7 +296,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			textWidget.SetColor(GUIColors.ORANGE);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void StyleButtonDefault(SCR_ButtonTextComponent buttonComp)
 	{
 		if (!buttonComp || !m_bDefaultStyleCached)
@@ -343,7 +308,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			textWidget.SetColor(m_DefaultTextColor);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected SCR_ButtonTextComponent FindTextButton(Widget w)
 	{
 		if (!w)
@@ -351,19 +315,16 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		return SCR_ButtonTextComponent.Cast(w.FindHandler(SCR_ButtonTextComponent));
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected bool IsOrangeStyledButton(SCR_ButtonTextComponent buttonComp)
 	{
 		return (buttonComp == m_ParkButton || buttonComp == m_CloseButton);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnMenuButtonFocus(Widget w)
 	{
 		StyleButtonFocus(FindTextButton(w));
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnMenuButtonFocusLost(Widget w)
 	{
 		SCR_ButtonTextComponent buttonComp = FindTextButton(w);
@@ -376,9 +337,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			StyleButtonDefault(buttonComp);
 	}
 
-	// ------------------------------------------------------------------ Gamepad-Support
-
-	//------------------------------------------------------------------------------------------------
 	protected void InitGamepadSupport()
 	{
 		Widget cardScroll = m_wRoot.FindAnyWidget("CardScroll");
@@ -394,8 +352,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		m_bDeviceListenerRegistered = true;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Hint-панель внизу справа: "Select" (индикация) и "Back" (завязан на Close)
 	protected void InitHintBar()
 	{
 		WorkspaceWidget workspace = GetGame().GetWorkspace();
@@ -418,7 +374,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			m_bBackHintWired = true;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected SCR_InputButtonComponent CreateHintButton(WorkspaceWidget workspace, Widget parent, string label, string actionName, bool wireBack)
 	{
 		Widget hint = workspace.CreateWidgets(HINT_BUTTON_LAYOUT, parent);
@@ -443,20 +398,17 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		return comp;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnBackHintActivated()
 	{
 		Close();
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Фокус с задержкой в кадр: свежие виджеты надёжно фокусируются после layout-прохода
+	// Defer focus until the newly built widgets have completed a layout pass.
 	protected void FocusInitialWidget()
 	{
 		GetGame().GetCallqueue().CallLater(ApplyFocus, 0, false);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void ApplyFocus()
 	{
 		if (s_OpenInstance != this)
@@ -474,8 +426,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			workspace.SetFocusedWidget(target);
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Порядок фокуса: первая карточка -> Park (если активен) -> таб
 	protected Widget GetPreferredFocusWidget()
 	{
 		foreach (BFCG_GARAGE_GarageCardComponent card : m_aCards)
@@ -497,7 +447,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		return null;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnInputDeviceUserChanged(EInputDeviceType oldDevice, EInputDeviceType newDevice)
 	{
 		if (newDevice == EInputDeviceType.MOUSE || newDevice == EInputDeviceType.TRACK_IR || newDevice == EInputDeviceType.JOYSTICK)
@@ -508,9 +457,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			ApplyFocus();
 	}
 
-	// ------------------------------------------------------------------ Сеть
-
-	//------------------------------------------------------------------------------------------------
 	protected void RequestContents()
 	{
 		if (!s_bContextSet)
@@ -532,8 +478,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		pc.BFCG_GARAGE_RequestContents(s_ContextGarageId);
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Owner-RPC: одна запись гаража (буфер до ContentsComplete)
 	void OnNetAddEntry(string vehicleID, string prefab, bool available)
 	{
 		BFCG_GARAGE_MenuEntry entry = new BFCG_GARAGE_MenuEntry();
@@ -543,8 +487,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		m_aEntries.Insert(entry);
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Owner-RPC: передача завершена - строим таб и сетку
 	void OnNetContentsComplete(int count)
 	{
 		if (m_aEntries.Count() != count)
@@ -556,23 +498,19 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		FocusInitialWidget();
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Owner-RPC: ТС на парковочном споте (пустой префаб = нет ТС)
 	void OnNetSetSpotVehicle(string prefab, int count)
 	{
 		m_sSpotPrefab = prefab;
 		m_iSpotVehicleCount = count;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Owner-RPC: результат Park-запроса
 	void OnNetParkResult(int resultCode)
 	{
 		m_bParkPending = false;
 
 		if (resultCode == BFCG_GARAGE_EParkResult.SUCCESS)
 		{
-			// Меню остаётся открытым - контент перезагружается
+
 			Print("[BFCG_GARAGE_GarageMenuUI] Parked - reloading contents", LogLevel.NORMAL);
 			RequestContents();
 			return;
@@ -584,15 +522,13 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			RequestContents();
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Owner-RPC: результат Unpack-запроса
 	void OnNetUnpackResult(string vehicleID, int resultCode)
 	{
 		m_bUnpackPending = false;
 
 		if (resultCode == BFCG_GARAGE_EUnpackResult.SUCCESS)
 		{
-			// После успешной выдачи меню закрывается
+
 			Print(string.Format("[BFCG_GARAGE_GarageMenuUI] Unpacked: %1 - closing menu", vehicleID), LogLevel.NORMAL);
 			Close();
 			return;
@@ -604,13 +540,11 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			RequestContents();
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Owner-RPC: результат Delete-запроса
+	// An already missing record is also a completed deletion from the view's perspective.
 	void OnNetDeleteResult(int resultCode)
 	{
 		m_bDeletePending = false;
 
-		// NOT_FOUND как успех: записи так или иначе нет
 		if (resultCode == BFCG_GARAGE_EDeleteResult.SUCCESS || resultCode == BFCG_GARAGE_EDeleteResult.NOT_FOUND)
 		{
 			Print("[BFCG_GARAGE_GarageMenuUI] Entry deleted - reloading contents", LogLevel.NORMAL);
@@ -622,9 +556,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		ShowError(GetDeleteErrorText(resultCode));
 	}
 
-	// ------------------------------------------------------------------ Панель парковки (обновление)
-
-	//------------------------------------------------------------------------------------------------
 	protected void UpdateParkPanel()
 	{
 		if (!m_wParkNameText)
@@ -675,7 +606,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		}
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnParkClicked(SCR_ButtonBaseComponent comp)
 	{
 		if (m_bParkPending)
@@ -691,9 +621,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		pc.BFCG_GARAGE_RequestPark(s_ContextGarageId);
 	}
 
-	// ------------------------------------------------------------------ Тексты ошибок
-
-	//------------------------------------------------------------------------------------------------
 	protected string GetParkErrorText(int resultCode)
 	{
 		switch (resultCode)
@@ -708,13 +635,16 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 				return "Too far from the garage";
 			case BFCG_GARAGE_EParkResult.OWNED_BY_ANOTHER_PLAYER:
 				return "Cannot park: this vehicle belongs to another player";
+			case BFCG_GARAGE_EParkResult.IDENTITY_NOT_READY:
+				return "Player identity is not ready. Please try again shortly.";
+			case BFCG_GARAGE_EParkResult.CLAIMS_RESTORING:
+				return "Vehicle data is being restored. Parking is temporarily unavailable. Please try again shortly.";
 			case BFCG_GARAGE_EParkResult.VEHICLE_OCCUPIED:
 				return "Cannot park: vehicle is occupied. All occupants must exit first";
 		}
 		return "Parking failed (internal error)";
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected string GetUnpackErrorText(int resultCode)
 	{
 		switch (resultCode)
@@ -739,7 +669,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		return "Unparking failed (internal error)";
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected string GetDeleteErrorText(int resultCode)
 	{
 		switch (resultCode)
@@ -752,7 +681,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		return "Deletion failed (internal error)";
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void ShowError(string message)
 	{
 		if (!m_wErrorText)
@@ -761,7 +689,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		m_wErrorText.SetVisible(true);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void HideError()
 	{
 		if (!m_wErrorText)
@@ -769,10 +696,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		m_wErrorText.SetVisible(false);
 	}
 
-	// ------------------------------------------------------------------ Таб
-
-	//------------------------------------------------------------------------------------------------
-	//! Один статический таб "Personal (N/12)" - персональный гараж без групп
+	// Display the server-provided garage limit instead of assuming the default capacity.
 	protected void BuildTabs()
 	{
 		if (!m_wTabBar)
@@ -811,7 +735,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		}
 		buttonComp.SetText(label);
 
-		// Дефолт-стиль один раз до любой перекраски
+		// Capture the original palette before applying focus or active-tab colours.
 		if (!m_bDefaultStyleCached)
 		{
 			m_DefaultBg = buttonComp.m_BackgroundDefault;
@@ -829,7 +753,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		if (textWidget)
 			AlignableSlot.SetPadding(textWidget, 14, 6, 14, 6);
 
-		// Единственный таб всегда "активен"
 		StyleButtonOrange(buttonComp);
 
 		buttonComp.m_bShowBorderOnFocus = false;
@@ -838,9 +761,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		m_aTabButtons.Insert(buttonComp);
 	}
 
-	// ------------------------------------------------------------------ Сетка
-
-	//------------------------------------------------------------------------------------------------
 	protected void ClearGrid()
 	{
 		ResetDeleteConfirmation();
@@ -859,7 +779,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		}
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void BuildGrid()
 	{
 		if (!m_wCardGrid)
@@ -922,7 +841,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		}
 		int cardCount = i;
 
-		// Свободные места до лимита - полупрозрачные заглушки
 		while (i < BFCG_Settings.Get().maxGarageVehicles)
 		{
 			Widget slot = workspace.CreateWidgets(CARD_LAYOUT, m_wCardGrid);
@@ -950,16 +868,13 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		WireNavigation(cardCount);
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Явная gamepad-навигация между зонами меню (auto-navigation через
-	//! контейнерные границы цели не находит). Пересоздаётся после каждого rebuild.
+	// Explicit links cross layout containers; rebuild them whenever cards are recreated.
 	protected void WireNavigation(int cardCount)
 	{
 		string firstTarget = "BFCG_ParkButton";
 		if (cardCount > 0)
 			firstTarget = "BFCG_Card0";
 
-		// Таб: вниз в контент
 		foreach (SCR_ButtonTextComponent tabComp : m_aTabButtons)
 		{
 			Widget tabRoot = tabComp.GetRootWidget();
@@ -967,8 +882,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 				tabRoot.SetNavigation(WidgetNavigationDirection.DOWN, WidgetNavigationRuleType.EXPLICIT, firstTarget);
 		}
 
-		// Карточки: правая колонка (и последняя) -> Park, верхний ряд -> таб,
-		// нижний ряд -> Close
 		int lastRow = 0;
 		if (cardCount > 0)
 			lastRow = (cardCount - 1) / GRID_COLUMNS;
@@ -1007,7 +920,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 				deleteRoot.SetNavigation(WidgetNavigationDirection.DOWN, WidgetNavigationRuleType.EXPLICIT, "ButtonClose");
 		}
 
-		// Park: влево к ближайшей карточке первого ряда, вверх к табу, вниз к Close
 		if (m_ParkButton)
 		{
 			Widget parkRoot = m_ParkButton.GetRootWidget();
@@ -1030,7 +942,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 			}
 		}
 
-		// Close: вверх в контент, вправо к Park
 		if (m_CloseButton)
 		{
 			Widget closeRoot = m_CloseButton.GetRootWidget();
@@ -1042,7 +953,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		}
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected Widget GetDeleteButtonRoot(int cardIndex)
 	{
 		if (cardIndex < 0 || cardIndex >= m_aDeleteComps.Count())
@@ -1052,8 +962,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		return m_aDeleteComps[cardIndex].GetRootWidget();
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Ванильный паттерн SCR_LoadoutPreviewComponent: manager из мира, иначе спавним локально
+	// Follow SCR_LoadoutPreviewComponent: reuse the world manager or create a local one.
 	protected ItemPreviewManagerEntity GetOrSpawnPreviewManager()
 	{
 		ChimeraWorld world = GetGame().GetWorld();
@@ -1071,10 +980,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		return manager;
 	}
 
-	// ------------------------------------------------------------------ Взаимодействие
-
-	//------------------------------------------------------------------------------------------------
-	//! Клик по карточке = выдача ТС (без confirm-диалога)
 	protected void OnCardClicked(SCR_ScriptedWidgetComponent comp)
 	{
 		if (m_bUnpackPending || m_bDeletePending)
@@ -1085,7 +990,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		if (!card || card.GetVehicleID().IsEmpty())
 			return;
 
-		// Заблокированная карточка (мод снят): не запрашиваем - сервер всё равно откажет
 		if (card.IsUnavailable())
 		{
 			ShowError(GetUnpackErrorText(BFCG_GARAGE_EUnpackResult.UNAVAILABLE));
@@ -1102,9 +1006,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		pc.BFCG_GARAGE_RequestUnpack(card.GetVehicleID(), s_ContextGarageId);
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Кнопка удаления карточки: первое нажатие включает подтверждение, второе удаляет.
-	//! OnClick используется и мышью, и gamepad, поэтому логика едина для ПК и консолей.
+	// First click arms this record; a second click within the timeout sends the delete request.
 	protected void OnCardDeleteClicked(SCR_ScriptedWidgetComponent comp)
 	{
 		if (m_bUnpackPending || m_bDeletePending)
@@ -1144,7 +1046,6 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		pc.BFCG_GARAGE_RequestDelete(vehicleID, s_ContextGarageId);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void ResetDeleteConfirmation()
 	{
 		GetGame().GetCallqueue().Remove(ResetDeleteConfirmation);
@@ -1153,13 +1054,11 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		m_ArmedDeleteComp = null;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnCloseClicked(SCR_ButtonBaseComponent button)
 	{
 		Close();
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void OnMenuBack(float value, EActionTrigger reason)
 	{
 		Close();

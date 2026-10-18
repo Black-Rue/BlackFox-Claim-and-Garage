@@ -1,21 +1,12 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_GarageManager.c
-//! BFCG_Garage - центральный синглтон: парковка/выдача/удаление, персистентность
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Changes: только персональный гараж; capacity is supplied by the standalone settings.json;
-//! группы, Access-Lock и layout-функционал удалены.
-//! 2026-08-12: UnparkVehicle восстанавливает содержимое багажника
-//! (BFCG_GARAGE_VehicleCargo.RestoreCargo, перенос решения Everon).
-//!
-//! Server-authority: Park/Unpark/SaveLoad только на сервере (вызывающий код
-//! защищается сам, у синглтона нет replication-гуарда).
-//------------------------------------------------------------------------------------------------
+/*
+ * Server-side personal garage storage, ownership checks and parking-spot allocation.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
 class BFCG_GARAGE_GarageManager
 {
-	// ЛИМИТ персонального гаража (машин на игрока). Меняется только здесь, в коде.
-	// Capacity is supplied by BFCG_Settings.
 
 	protected static ref BFCG_GARAGE_GarageManager s_Instance;
 
@@ -40,15 +31,12 @@ class BFCG_GARAGE_GarageManager
 		return s_Instance;
 	}
 
-	// ------------------------------------------------------------------ Park / Unpark / Delete
-
-	// true = ТС сохранено и удалено из мира; false = лимит или ошибка данных
+	// Persist the garage record before removing the live vehicle; a failed write preserves it.
 	bool ParkVehicle(IEntity vehicle, string ownerUID, IEntity spawnEntity)
 	{
 		if (!CanUseStorage() || !vehicle || ownerUID.IsEmpty() || BFCG_ExcludedVehicleComponent.IsExcluded(vehicle))
 			return false;
 
-		// Ownership is an invariant of stored vehicles, not just an RPC/UI check.
 		if (BFCG_VehicleClaimState.IsClaimedByOtherIdentity(vehicle, ownerUID))
 		{
 			Print("[BFCG_GARAGE] Park denied: vehicle is claimed by another player", LogLevel.WARNING);
@@ -62,7 +50,7 @@ class BFCG_GARAGE_GarageManager
 		if (!data)
 			return false;
 
-		// Deleting the vehicle also deletes seated characters. Check before any storage mutation.
+		// Deleting the vehicle also deletes seated characters; reject before any storage mutation.
 		if (HasOccupants(vehicle))
 		{
 			Print("[BFCG_GARAGE] Park denied: vehicle is occupied", LogLevel.WARNING);
@@ -70,7 +58,7 @@ class BFCG_GARAGE_GarageManager
 		}
 
 		m_aStoredVehicles.Insert(data);
-		// A failed disk write must never delete the live vehicle.
+
 		if (!SaveGarageData())
 		{
 			int failedIndex = m_aStoredVehicles.Find(data);
@@ -83,7 +71,7 @@ class BFCG_GARAGE_GarageManager
 		return true;
 	}
 
-	// Server-only retrieval at a free spot belonging to the requesting terminal.
+	// Spawn and claim first; consume the stored record only after those steps succeed.
 	int UnparkVehicle(string vehicleID, string playerUID, BFCG_GARAGE_GarageComponent garageCmp)
 	{
 		if (!Replication.IsServer() || !garageCmp || playerUID.IsEmpty() || !m_bStorageReady)
@@ -118,7 +106,8 @@ class BFCG_GARAGE_GarageManager
 
 		vector transform[4];
 		parkingSpot.GetTransform(transform);
-		// Markers may inherit a decorative scale; never apply it to the vehicle.
+
+		// Discard marker scale so decorative parking prefabs cannot scale the spawned vehicle.
 		vector right = transform[0];
 		vector up = transform[1];
 		vector forward = transform[2];
@@ -140,8 +129,7 @@ class BFCG_GARAGE_GarageManager
 			return BFCG_GARAGE_EUnpackResult.FAILED;
 		}
 
-		// The garage owner UID is server-derived. Claim before removing the stored
-		// record so a failed integration cannot lose the vehicle or leave an unowned copy.
+		// A failed owner-claim assignment removes the new entity and leaves the stored record intact.
 		if (!BFCG_VehicleClaimState.RefreshVehicleFromGarage(spawned, playerUID))
 		{
 			Print(string.Format("[BFCG_GARAGE] Spawned vehicle could not be claimed for player %1", playerUID), LogLevel.ERROR);
@@ -150,14 +138,8 @@ class BFCG_GARAGE_GarageManager
 			return BFCG_GARAGE_EUnpackResult.FAILED;
 		}
 
-		//--- Вернуть содержимое багажника (перенос решения Everon).
-		//--- Дефолтный груз свежего префаба снимается внутри RestoreCargo;
-		//--- предмет, не поместившийся в хранилище, остаётся лежать у ТС.
-		//--- ОТКЛЮЧЕНО 2026-08-12 (см. BFCG_GARAGE_VehicleData.FromVehicle): вызванное
-		//--- ТС приходит с дефолтным префабным грузом. Раскомментировать вместе с
-		//--- сериализацией в FromVehicle для возврата функции.
-		//BFCG_GARAGE_VehicleCargo.RestoreCargo(spawned, data.m_aTrunk);
-
+		// Retrieval uses prefab defaults, including cargo; the parked inventory is discarded.
+		// On a failed garage write, restore the record and remove the spawned entity.
 		int idx = m_aStoredVehicles.Find(data);
 		if (idx >= 0)
 			m_aStoredVehicles.Remove(idx);
@@ -173,7 +155,6 @@ class BFCG_GARAGE_GarageManager
 		return BFCG_GARAGE_EUnpackResult.SUCCESS;
 	}
 
-	// Удаляет запись без спавна (уборка недоступных ТС, мод снят с сервера)
 	bool DeleteVehicle(string vehicleID, string playerUID)
 	{
 		if (!CanUseStorage())
@@ -196,8 +177,7 @@ class BFCG_GARAGE_GarageManager
 		return true;
 	}
 
-	// Include child compartment managers used by multipart/modded vehicles.
-	// Block AI as well: no seated character should be deleted by parking.
+	// Inspect child compartment managers too, including AI occupants, before deleting a vehicle.
 	static bool HasOccupants(IEntity entity)
 	{
 		if (!entity)
@@ -225,8 +205,6 @@ class BFCG_GARAGE_GarageManager
 		}
 		return false;
 	}
-
-	// ------------------------------------------------------------------ Queries
 
 	static bool IsPrefabAvailable(ResourceName prefab)
 	{
@@ -268,17 +246,15 @@ class BFCG_GARAGE_GarageManager
 		return null;
 	}
 
-	// Публичный lookup для серверной RPC-валидации
 	BFCG_GARAGE_VehicleData GetVehicleByID(string vehicleID)
 	{
 		return FindVehicleByID(vehicleID);
 	}
 
-	// ------------------------------------------------------------------ Spawn-Block (Server)
-
 	protected bool m_bSpawnQueryHitVehicle;
 	protected ref map<IEntity, float> m_SpotReservedUntil = new map<IEntity, float>();
 
+	// Only use spots linked to this terminal. Reserve briefly to cover concurrent requests before physics updates.
 	protected IEntity ReserveFreeParkingSpot(BFCG_GARAGE_GarageComponent garageCmp, out bool hasParkingSpots)
 	{
 		hasParkingSpots = false;
@@ -302,13 +278,14 @@ class BFCG_GARAGE_GarageManager
 				continue;
 			if (IsSpawnPositionBlocked(entity.GetOrigin(), Math.Max(BFCG_Settings.Get().spawnClearanceMeters, spot.GetParkRadius())))
 				continue;
-			// Cover consecutive requests before a newly spawned entity reaches physics queries.
+
 			m_SpotReservedUntil.Set(entity, now + BFCG_Settings.Get().spawnReservationMilliseconds);
 			return entity;
 		}
 		return null;
 	}
 
+	// The clearance sphere checks vehicles and characters; it is not a full geometry collision test.
 	bool IsSpawnPositionBlocked(vector pos, float radius = 3.0)
 	{
 		BaseWorld world = GetGame().GetWorld();
@@ -326,13 +303,13 @@ class BFCG_GARAGE_GarageManager
 		return true;
 	}
 
-	// ------------------------------------------------------------------ Persistence (JsonApiStruct)
-
+	// Block mutations until settings, garage records and native claim restoration are ready.
 	bool CanUseStorage()
 	{
 		return Replication.IsServer() && m_bStorageReady && BFCG_VehicleClaimPersistence.IsReady();
 	}
 
+	// A failed write disables further mutations for this manager instance.
 	bool SaveGarageData()
 	{
 		if (!Replication.IsServer() || !m_bStorageReady)
@@ -349,6 +326,7 @@ class BFCG_GARAGE_GarageManager
 		return true;
 	}
 
+	// Reject unreadable, invalid or duplicate records without replacing the existing storage file.
 	void LoadGarageData()
 	{
 		m_aStoredVehicles.Clear();
@@ -373,8 +351,6 @@ class BFCG_GARAGE_GarageManager
 			m_aStoredVehicles.Insert(entry.ToData());
 		}
 	}
-
-	// ------------------------------------------------------------------ Logging
 
 	protected void LogAction(string playerUID, string action, string vehicleName, string vehicleID)
 	{

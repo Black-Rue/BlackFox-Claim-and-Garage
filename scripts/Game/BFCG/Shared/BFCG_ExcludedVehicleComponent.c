@@ -1,4 +1,8 @@
-// Add this optional marker to rental/event/temporary vehicles that must not be claimed or stored.
+/*
+ * BlackFox opt-out marker for claiming, garage storage and optional unclaimed cleanup.
+ * This marker does not disable vanilla vehicle persistence.
+ */
+
 [ComponentEditorProps(category: "BFCG", description: "Exclude this vehicle from Claim, Garage and optional cleanup")]
 class BFCG_ExcludedVehicleComponentClass : ScriptComponentClass {}
 class BFCG_ExcludedVehicleComponent : ScriptComponent

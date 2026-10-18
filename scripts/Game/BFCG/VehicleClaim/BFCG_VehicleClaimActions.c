@@ -1,8 +1,7 @@
 /*
- * BFCG Vehicle Claim for Arma Reforger 1.8.
- * Forked and rewritten from the CarKey2 vehicle actions and access overrides
- * by NewbKodii. Physical key/code checks are replaced with persistent owner
- * identity checks. Workshop ID: 66D61CE15CC684A6; license: APL.
+ * Vehicle actions and access overrides adapted and rewritten from CarKey2 by NewbKodii (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/66D61CE15CC684A6
+ * BlackFox replaces physical key/code checks with persistent owner identity checks.
  */
 
 class BFCG_VehicleClaimAccess
@@ -29,8 +28,7 @@ class BFCG_VehicleClaimAccess
 		return BFCG_VehicleClaimState.IsAccessDenied(FindState(entity), user);
 	}
 
-	// Forked from the remaining-time formatting in CarKey2 Key_DecayTime by
-	// NewbKodii. The BFCG version reads the server-synchronised claim expiry.
+	// Remaining-time formatting is adapted from CarKey2 Key_DecayTime; expiry comes from server state.
 	static string GetToggleName(VehicleControllerComponent state)
 	{
 		string operation = "Lock Vehicle";
@@ -183,8 +181,7 @@ modded class SCR_PushVehicleAction
 	}
 }
 
-// Append the registered claim action to the native list instead of selecting
-// a competing invisible collider/context in front of doors and compartments.
+// Append to native vehicle actions so the proxy needs no competing interaction collider.
 modded class SCR_InteractionHandlerComponent
 {
 	override void AggregateActions(array<BaseUserAction> actionsList, array<bool> canPerformList)

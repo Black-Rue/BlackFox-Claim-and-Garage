@@ -1,40 +1,32 @@
-//------------------------------------------------------------------------------------------------
-//! File: BFCG_GARAGE_GarageCardComponent.c
-//! BFCG_Garage - виджет-компонента карточки ТС в меню гаража
-//!
-//! Based on GTG_Garage by Maj0rrush / GTG-Team (Arma Public License) - modified.
-//! Changes: BFCG-нейминг, английские логи; базовая карточка, hover/focus-рамка,
-//! placeholder/unavailable-режимы и отдельный клик-канал удаления основаны на оригинале.
-//! BFCG addition: двухэтапное подтверждение удаления с визуальным состоянием карточки.
-//------------------------------------------------------------------------------------------------
+/*
+ * Garage cards, vehicle previews and a separate two-step delete control.
+ * Based on GTG_Garage by Maj0rrush / GTG-Team; modified by BlackFox.
+ * Original licence: Arma Public License (APL).
+ * Workshop: https://reforger.armaplatform.com/workshop/1CF644CD7D02B7F2
+ */
 
-//------------------------------------------------------------------------------------------------
-//! Клик-хендлер кнопки удаления в углу карточки. Свой класс, потому что
-//! ванильные кнопки возвращают false из OnClick и клик проскакивал бы в карту
-//! (выдача ТС). Здесь событие "съедается" (return true).
+// Consume delete clicks so they cannot bubble into the card and retrieve the vehicle.
 class BFCG_GARAGE_CardDeleteComponent : SCR_ScriptedWidgetComponent
 {
-	// Не ref: карта владеет компонентой, обратная ссылка намеренно слабая
+
+	// Keep the back-reference weak: the card owns this handler.
 	protected BFCG_GARAGE_GarageCardComponent m_Card;
 	protected ImageWidget m_wIcon;
 	protected bool m_bHighlighted;
 	protected bool m_bArmed;
 
-	//------------------------------------------------------------------------------------------------
 	void Init(BFCG_GARAGE_GarageCardComponent card, ImageWidget icon)
 	{
 		m_Card = card;
 		m_wIcon = icon;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnClick(Widget w, int x, int y, int button)
 	{
 		m_OnClick.Invoke(this);
-		return true; // событие съедено - не пробрасываем в карту
+		return true;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnMouseEnter(Widget w, int x, int y)
 	{
 		super.OnMouseEnter(w, x, y);
@@ -42,7 +34,6 @@ class BFCG_GARAGE_CardDeleteComponent : SCR_ScriptedWidgetComponent
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnMouseLeave(Widget w, Widget enterW, int x, int y)
 	{
 		super.OnMouseLeave(w, enterW, x, y);
@@ -50,7 +41,6 @@ class BFCG_GARAGE_CardDeleteComponent : SCR_ScriptedWidgetComponent
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnFocus(Widget w, int x, int y)
 	{
 		super.OnFocus(w, x, y);
@@ -58,7 +48,6 @@ class BFCG_GARAGE_CardDeleteComponent : SCR_ScriptedWidgetComponent
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnFocusLost(Widget w, int x, int y)
 	{
 		super.OnFocusLost(w, x, y);
@@ -66,8 +55,7 @@ class BFCG_GARAGE_CardDeleteComponent : SCR_ScriptedWidgetComponent
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Первое нажатие оставляет кнопку в предупреждающем состоянии до подтверждения/таймаута.
+	// Keep the confirmation visible until the second click, timeout or menu reset.
 	void SetArmed(bool armed)
 	{
 		m_bArmed = armed;
@@ -76,14 +64,12 @@ class BFCG_GARAGE_CardDeleteComponent : SCR_ScriptedWidgetComponent
 		ApplyVisualState();
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void SetHighlight(bool highlight)
 	{
 		m_bHighlighted = highlight;
 		ApplyVisualState();
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void ApplyVisualState()
 	{
 		bool highlighted = m_bHighlighted || m_bArmed;
@@ -120,7 +106,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 	protected Widget m_wDeleteButton;
 	protected ref BFCG_GARAGE_CardDeleteComponent m_DeleteComp;
 
-	//------------------------------------------------------------------------------------------------
 	override void HandlerAttached(Widget w)
 	{
 		super.HandlerAttached(w);
@@ -156,7 +141,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		InitDeleteButton(w);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	protected void InitDeleteButton(Widget w)
 	{
 		m_wDeleteButton = w.FindAnyWidget("CardDeleteButton");
@@ -175,20 +159,17 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		m_DeleteComp.Init(this, deleteIcon);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	void EnableDeleteButton()
 	{
 		if (m_wDeleteButton)
 			m_wDeleteButton.SetVisible(true);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	Widget GetDeleteButtonWidget()
 	{
 		return m_wDeleteButton;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	ScriptInvoker GetDeleteClickInvoker()
 	{
 		if (!m_DeleteComp)
@@ -196,7 +177,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		return m_DeleteComp.m_OnClick;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	void ShowBorderFromDeleteButton(bool show)
 	{
 		if (!m_wHoverBorder || m_bEmptySlot)
@@ -206,7 +186,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		m_wHoverBorder.SetVisible(show);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	void SetUnavailableMode()
 	{
 		m_bUnavailable = true;
@@ -214,13 +193,11 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 			m_wUnavailableIcon.SetVisible(true);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	bool IsUnavailable()
 	{
 		return m_bUnavailable;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	bool TrySetPrerenderedImage(ResourceName prefab)
 	{
 		if (!SetPrefabImageTo(m_wCardImage, prefab))
@@ -232,8 +209,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		return true;
 	}
 
-	//------------------------------------------------------------------------------------------------
-	// Статический вариант (панель парковки): грузит предрендеренную картинку префаба
 	static bool SetPrefabImageTo(ImageWidget imageWidget, ResourceName prefab)
 	{
 		if (!imageWidget || prefab.IsEmpty())
@@ -254,7 +229,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		return info.SetAssetImageTo(imageWidget);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	void SetEmptySlotMode()
 	{
 		m_bEmptySlot = true;
@@ -275,7 +249,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 			m_wRoot.SetFlags(WidgetFlags.NOFOCUS);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnMouseEnter(Widget w, int x, int y)
 	{
 		super.OnMouseEnter(w, x, y);
@@ -284,7 +257,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnMouseLeave(Widget w, Widget enterW, int x, int y)
 	{
 		super.OnMouseLeave(w, enterW, x, y);
@@ -293,7 +265,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnFocus(Widget w, int x, int y)
 	{
 		super.OnFocus(w, x, y);
@@ -303,7 +274,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	override bool OnFocusLost(Widget w, int x, int y)
 	{
 		super.OnFocusLost(w, x, y);
@@ -313,7 +283,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		return false;
 	}
 
-	//------------------------------------------------------------------------------------------------
 	void SetPreview(ItemPreviewManagerEntity manager, ResourceName prefab)
 	{
 		if (!manager || !m_wPreviewWidget || prefab.IsEmpty())
@@ -322,7 +291,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 		manager.SetPreviewItemFromPrefab(m_wPreviewWidget, prefab);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	void InitCard(string vehicleID, string displayName)
 	{
 		m_sVehicleID = vehicleID;
@@ -331,8 +299,7 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 			m_wNameText.SetText(displayName);
 	}
 
-	//------------------------------------------------------------------------------------------------
-	//! Явное подтверждение на самой карточке одинаково видно при мыши и при gamepad-фокусе.
+	// Use the same visible confirmation for mouse and gamepad input.
 	void SetDeleteConfirmation(bool enabled)
 	{
 		if (!m_wNameText)
@@ -344,7 +311,6 @@ class BFCG_GARAGE_GarageCardComponent : SCR_ScriptedWidgetComponent
 			m_wNameText.SetText(m_sDisplayName);
 	}
 
-	//------------------------------------------------------------------------------------------------
 	string GetVehicleID()
 	{
 		return m_sVehicleID;

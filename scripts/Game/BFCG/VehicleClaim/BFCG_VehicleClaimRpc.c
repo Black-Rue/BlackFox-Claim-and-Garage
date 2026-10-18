@@ -1,7 +1,7 @@
 /*
- * Client-side presentation state for BFCG Vehicle Claim.
- * The server sends a personalised owner flag; authoritative claim data and
- * every state change remain server-side.
+ * BlackFox client presentation cache for vehicle claims.
+ * Owner RPCs expose a personalised ownership flag, not the persistent owner identity.
+ * All authoritative checks and mutations remain on the server.
  */
 
 class BFCG_VehicleClaimClientEntry
