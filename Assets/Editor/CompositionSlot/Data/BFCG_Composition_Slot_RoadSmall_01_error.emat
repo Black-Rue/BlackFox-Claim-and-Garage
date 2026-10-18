@@ -1,0 +1,4 @@
+MatCommon : "{922BA16E395648CF}Assets/Editor/CompositionSlot/Data/Composition_Slot_Base_Side.emat" {
+ Color 0.502 0 0 1
+ AlbedoMap "{0663A9002BCCEC8A}Assets/Editor/CompositionSlot/Data/Composition_Slot_RoadSmall_01_BCR.edds"
+}

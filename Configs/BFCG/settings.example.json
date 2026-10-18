@@ -1,0 +1,12 @@
+{
+  "maxWorldClaims": 3,
+  "maxGarageVehicles": 12,
+  "claimDurationHours": 72,
+  "enableUnclaimedCleanup": false,
+  "unclaimedLifetimeHours": 6,
+  "initialRestoreDelaySeconds": 30,
+  "proxyScanSeconds": 30,
+  "spawnClearanceMeters": 3.0,
+  "spawnReservationMilliseconds": 1000,
+  "maxGarageRequestDistanceMeters": 10.0
+}

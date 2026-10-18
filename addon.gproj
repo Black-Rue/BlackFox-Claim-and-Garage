@@ -1,0 +1,8 @@
+GameProject {
+ ID "BlackFoxClaimandGarage"
+ GUID "6AA35166B9E79609"
+ TITLE "BlackFox Claim and Garage"
+ Dependencies {
+  "58D0FB3206B6F859"
+ }
+}

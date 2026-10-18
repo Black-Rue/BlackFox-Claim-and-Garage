@@ -1,0 +1,17 @@
+MetaFileClass {
+ Name "{D59BC6A811687C75}Assets/Editor/CompositionSlot/Data/BFCG_Composition_Slot_Base_Side_Error.emat"
+ Configurations {
+  EMATResourceClass PC {
+  }
+  EMATResourceClass XBOX_ONE : PC {
+  }
+  EMATResourceClass XBOX_SERIES : PC {
+  }
+  EMATResourceClass PS4 : PC {
+  }
+  EMATResourceClass PS5 : PC {
+  }
+  EMATResourceClass HEADLESS : PC {
+  }
+ }
+}

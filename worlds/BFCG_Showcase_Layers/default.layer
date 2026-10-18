@@ -1,0 +1,66 @@
+GenericEntity BFCG_TestFloor {
+ components {
+  MeshObject "{1A2A26F3EBB7515C}" {
+   Object "{B185028A18B33874}Assets/Editor/Plane_01/Plane_01_100x100.xob"
+   PixelSizeScale 10
+  }
+  RigidBody "{1A2A26F308447ABD}" {
+   ModelGeometry 1
+   Static 1
+   LayerPreset "Terrain"
+  }
+ }
+ coords 128 20 128
+}
+GenericWorldLightEntity BFCG_Lighting {
+ angles -45 -35 0
+ DirectLightLV 15
+ IndirectLightLV 13
+ TargetEV -1.5
+}
+GenericWorldPPEffect BFCG_HDR {
+ Priority 16
+ Material "{9532C413ED8F11F7}Common/Postprocess/HDR_Assets_Browser.emat"
+}
+SCR_CameraManager BFCG_Camera : "{33F9FD881E3700CC}Prefabs/World/Game/SCR_CameraManager.et" {
+}
+TimeAndWeatherManagerEntity BFCG_Weather : "{A3BAF78F6F03315B}Prefabs/World/Game/TimeAndWeatherManager.et" {
+ "Initial Day Time" 12
+}
+SCR_AIWorld BFCG_AIWorld {
+}
+SCR_FactionManager BFCG_Factions : "{589540B35EBA8CDC}Prefabs/MP/Managers/Factions/FactionManager_USxUSSR.et" {
+}
+SCR_LoadoutManager BFCG_Loadouts : "{97EF4C1A41F63DDB}Prefabs/MP/Managers/Loadouts/LoadoutManager_USxUSSR.et" {
+}
+SCR_BaseGameMode BFCG_GameMode : "{1B76F75A3175E85C}Prefabs/MP/Modes/Plain/GameMode_Plain.et" {
+ components {
+  SCR_RespawnSystemComponent "{56B2B4793051E7C9}" {
+   m_SpawnLogic SCR_AutoSpawnLogic "{5D36888CC966608A}" {
+    m_sForcedFaction "US"
+   }
+  }
+ }
+}
+SCR_SpawnPoint BFCG_PlayerSpawn : "{5A2220DD0C16958B}Prefabs/MP/Spawning/SpawnPoint_US.et" {
+ coords 128 20.15 123
+}
+Vehicle BFCG_TestVehicle : "{47D94E1193A88497}Prefabs/Vehicles/Wheeled/M151A2/M151A2_transport.et" {
+ coords 120 20.5 133
+}
+GenericEntity BFCG_GarageTerminal : "{C90A07AF234980D0}Prefabs/BFCG/Garage/BFCG_GARAGE_GaragePoint_Personal.et" {
+ coords 128 20 128
+}
+GenericEntity BFCG_Parking_1 : "{9BAADB6376C93B65}Prefabs/BFCG/Garage/BFCG_GARAGE_ParkingSpot.et" {
+ coords 120 20 133
+}
+GenericEntity BFCG_Parking_2 : "{9BAADB6376C93B65}Prefabs/BFCG/Garage/BFCG_GARAGE_ParkingSpot.et" {
+ coords 136 20 133
+}
+RadioManagerEntity BFCG_Radio : "{B8E09FAB91C4ECCD}Prefabs/Systems/Radio/RadioManager.et" {
+}
+ScriptedChatEntity BFCG_Chat : "{F69BC912AC8236F9}Prefabs/MP/ScriptedChatEntity.et" {
+}
+SCR_EditorSettingsEntity BFCG_EditorSettings {
+ m_bIsUnlimitedEditorLegal 1
+}

@@ -1,0 +1,15 @@
+MatCommon {
+ Color 0 1 0.005 1
+ Cull none
+ Sort translucent
+ SortBias 5
+ CastShadow 0
+ ReceiveShadow 0
+ NoDecals 1
+ AlphaTest 0.01
+ AlphaMul 0.15
+ BlendMode AlphaBlend
+ AlbedoMap "{EA584D784486EB93}Assets/Editor/CompositionSlot/Data/Composition_Slot_Side_BCR.edds"
+ DisableVertexColor 1
+ DisablePrexposure 1
+}

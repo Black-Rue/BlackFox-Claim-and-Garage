@@ -1,0 +1,25 @@
+GenericEntity {
+ ID "BF6A110000000200"
+ components {
+  BFCG_GARAGE_ParkingSpotComponent "{BF6A110000000201}" {
+   m_sLinkedGarageID "BFCG_Garage_01"
+   m_fParkRadius 5
+   m_fApproachRadius 10
+   m_rNeutralVisualPrefab "{9BA149D51CEFD7DB}Prefabs/BFCG/Garage/BFCG_GARAGE_VisualNeutral.et"
+   m_rActiveVisualPrefab "{AC21506FD0C25417}Prefabs/BFCG/Garage/BFCG_GARAGE_VisualActive.et"
+   m_rErrorVisualPrefab "{98347F2F3AC370AA}Prefabs/BFCG/Garage/BFCG_GARAGE_VisualError.et"
+  }
+  MeshObject "{BF6A110000000202}" {
+   Object "{35E8D08E9ECD7158}Assets/Clutter/Rocks/c_stones_sharp_small_01.xob"
+   PixelSizeScale 0.73
+  }
+  RigidBody "{BF6A110000000203}" {
+   ModelGeometry 1
+   Kinematic 1
+  }
+  SCR_EditableEntityComponent "{BF6A110000000204}" {
+  }
+  RplComponent "{BF6A110000000205}" {
+  }
+ }
+}

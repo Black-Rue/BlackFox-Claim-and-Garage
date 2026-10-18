@@ -1,0 +1,261 @@
+OverlayWidgetClass {
+ Name "rootFrame"
+ {
+  ImageWidgetClass "{69CD22E48827606E}" {
+   Name "Backdrop"
+   Slot OverlayWidgetSlot "{69CD3B6F8BB297BF}" {
+    HorizontalAlign 3
+    VerticalAlign 3
+   }
+   Opacity 0.75
+   Color 0 0 0 1
+  }
+  HorizontalLayoutWidgetClass "{69CF06051A28FB97}" {
+   Name "ContentSplit"
+   Slot OverlayWidgetSlot "{69CF06051A28FBE9}" {
+    HorizontalAlign 3
+    VerticalAlign 3
+    Padding 40 130 40 40
+   }
+   {
+    ScrollLayoutWidgetClass "{69CD3B6F8BB29C27}" {
+     Name "CardScroll"
+     {
+      GridLayoutWidgetClass "{69CD3B6F8BB29C91}" {
+       Name "CardGrid"
+      }
+     }
+    }
+    OverlayWidgetClass "{69CF0604E53EFE23}" {
+     Name "ParkArea"
+     {
+      VerticalLayoutWidgetClass "{69CF06051A28FBDA}" {
+       Name "ParkPanel"
+       Slot OverlayWidgetSlot "{69CF0604E53EFE1E}" {
+        HorizontalAlign 1
+        VerticalAlign 1
+       }
+       {
+        SizeLayoutWidgetClass "{69CF06051A28FBD0}" {
+         Name "ParkImageSize"
+         AllowWidthOverride 1
+         WidthOverride 400
+         AllowHeightOverride 1
+         HeightOverride 300
+         {
+          OverlayWidgetClass "{69CF06051A28F83A}" {
+           Name "ParkImageOverlay"
+           Slot AlignableSlot "{69CF06051A28F830}" {
+            HorizontalAlign 3
+            VerticalAlign 3
+           }
+           {
+            ImageWidgetClass "{69CF06051A28F809}" {
+             Name "ParkPanelFill"
+             Slot OverlayWidgetSlot "{69CF06051A28F803}" {
+              HorizontalAlign 3
+              VerticalAlign 3
+             }
+             Opacity 0.5
+             Color 0.1 0.1 0.1 1
+            }
+            ImageWidgetClass "{69CF06051A28F81A}" {
+             Name "ParkImage"
+             Slot OverlayWidgetSlot "{69CF06051A28F815}" {
+              HorizontalAlign 3
+              VerticalAlign 3
+             }
+             "Is Visible" 0
+            }
+            ItemPreviewWidgetClass "{69CF06051A28F868}" {
+             Name "ParkPreview"
+             Slot OverlayWidgetSlot "{69CF06051A28F87F}" {
+              HorizontalAlign 3
+              VerticalAlign 3
+             }
+             "Is Visible" 0
+            }
+            OverlayWidgetClass {
+             Name "ParkHoverBorder"
+             Slot OverlayWidgetSlot {
+              HorizontalAlign 3
+              VerticalAlign 3
+             }
+             "Is Visible" 0
+             {
+              SizeLayoutWidgetClass {
+               Name "ParkHoverBorderTopSize"
+               Slot OverlayWidgetSlot {
+                HorizontalAlign 3
+                VerticalAlign 0
+               }
+               AllowHeightOverride 1
+               HeightOverride 4
+               {
+                ImageWidgetClass {
+                 Name "ParkHoverBorderTop"
+                 Slot AlignableSlot {
+                  HorizontalAlign 3
+                  VerticalAlign 3
+                 }
+                 Color 0.7606 0.3864 0.0802 1
+                }
+               }
+              }
+              SizeLayoutWidgetClass {
+               Name "ParkHoverBorderBottomSize"
+               Slot OverlayWidgetSlot {
+                HorizontalAlign 3
+                VerticalAlign 2
+               }
+               AllowHeightOverride 1
+               HeightOverride 4
+               {
+                ImageWidgetClass {
+                 Name "ParkHoverBorderBottom"
+                 Slot AlignableSlot {
+                  HorizontalAlign 3
+                  VerticalAlign 3
+                 }
+                 Color 0.7606 0.3864 0.0802 1
+                }
+               }
+              }
+              SizeLayoutWidgetClass {
+               Name "ParkHoverBorderLeftSize"
+               Slot OverlayWidgetSlot {
+                HorizontalAlign 0
+                VerticalAlign 3
+               }
+               AllowWidthOverride 1
+               WidthOverride 4
+               {
+                ImageWidgetClass {
+                 Name "ParkHoverBorderLeft"
+                 Slot AlignableSlot {
+                  HorizontalAlign 3
+                  VerticalAlign 3
+                 }
+                 Color 0.7606 0.3864 0.0802 1
+                }
+               }
+              }
+              SizeLayoutWidgetClass {
+               Name "ParkHoverBorderRightSize"
+               Slot OverlayWidgetSlot {
+                HorizontalAlign 2
+                VerticalAlign 3
+               }
+               AllowWidthOverride 1
+               WidthOverride 4
+               {
+                ImageWidgetClass {
+                 Name "ParkHoverBorderRight"
+                 Slot AlignableSlot {
+                  HorizontalAlign 3
+                  VerticalAlign 3
+                 }
+                 Color 0.7606 0.3864 0.0802 1
+                }
+               }
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+        TextWidgetClass "{69CF06051A28F873}" {
+         Name "ParkVehicleName"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+  VerticalLayoutWidgetClass "{69CF0608CE54A937}" {
+   Name "TabArea"
+   Slot OverlayWidgetSlot "{69CF0608CE54A90D}" {
+    HorizontalAlign 3
+    VerticalAlign 0
+    Padding 0 75 0 0
+   }
+   {
+    HorizontalLayoutWidgetClass "{69CD643365471744}" {
+     Name "TabBar"
+    }
+    SizeLayoutWidgetClass "{69CF0608CE54A918}" {
+     Name "TabSeparatorSize"
+     AllowHeightOverride 1
+     HeightOverride 3
+     {
+      ImageWidgetClass "{69CF0608CE54A96A}" {
+       Name "TabSeparator"
+       Slot AlignableSlot "{69CF0608CE54A960}" {
+        HorizontalAlign 3
+        VerticalAlign 3
+       }
+       Color 0.7606 0.3864 0.0802 1
+      }
+     }
+    }
+   }
+  }
+  TextWidgetClass "{69CD22E5709F263D}" {
+   Name "Title"
+   Slot OverlayWidgetSlot "{69CD3B6F8BB29D95}" {
+    HorizontalAlign 0
+    VerticalAlign 0
+    Padding 40 30 0 0
+   }
+   Text "GARAGE"
+  }
+  ButtonWidgetClass "{69CD22E5DACC8AE4}" : "{75C912A1C89BE6C2}UI/layouts/WidgetLibrary/Buttons/WLib_ButtonText.layout" {
+   Name "ButtonClose"
+   Slot OverlayWidgetSlot "{69CD3B6F8BAC5314}" {
+    HorizontalAlign 0
+    VerticalAlign 2
+    Padding 30 30 30 30
+   }
+   Color 0.7605 0.3865 0.0802 1
+   components {
+    SCR_ButtonTextComponent "{5548F0143AE99095}" {
+     m_sText "ESC"
+    }
+   }
+   {
+    SizeLayoutWidgetClass "{5548EB41A8E48247}" {
+     Prefab "{5548EB41A8E48247}"
+     {
+      OverlayWidgetClass "{5548EB41A8E48245}" {
+       Prefab "{5548EB41A8E48245}"
+       {
+        ImageWidgetClass "{5548EB41A8E48243}" {
+         Prefab "{5548EB41A8E48243}"
+         Color 0.7605 0.3865 0.0802 1
+        }
+        PanelWidgetClass "{555CBD14A0EABAE3}" {
+         Prefab "{555CBD14A0EABAE3}"
+         Slot OverlayWidgetSlot "{55367D8E4A13554A}" {
+          HorizontalAlign 0
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+  TextWidgetClass "{69CF060BD1598E06}" {
+   Name "ErrorText"
+   Slot OverlayWidgetSlot "{69CF060BD1598E00}" {
+    HorizontalAlign 1
+    VerticalAlign 2
+    Padding 0 0 0 30
+   }
+   "Is Visible" 0
+   Color 0.7606 0.3864 0.0802 1
+  }
+ }
+}

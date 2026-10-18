@@ -1,0 +1,9 @@
+MetaFileClass {
+ Name "{51B35CF4BB626C1A}Missions/BFCG_Showcase.conf"
+ Configurations {
+  CONFResourceClass PC {
+  }
+  CONFResourceClass HEADLESS : PC {
+  }
+ }
+}

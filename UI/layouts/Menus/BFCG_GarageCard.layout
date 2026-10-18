@@ -1,0 +1,254 @@
+ButtonWidgetClass {
+ Name "CardRoot"
+ Color 0 0 0 0
+ {
+  SizeLayoutWidgetClass "{69CD32729C2F13DA}" {
+   Name "CardSize"
+   AllowWidthOverride 1
+   WidthOverride 264
+   AllowHeightOverride 1
+   HeightOverride 234
+   {
+    OverlayWidgetClass "{69CD32729C2F1034}" {
+     Name "CardOverlay"
+     Slot AlignableSlot "{69CD32729C2F1004}" {
+      HorizontalAlign 3
+      VerticalAlign 3
+     }
+     {
+      VerticalLayoutWidgetClass {
+       Name "CardColumn"
+       Slot OverlayWidgetSlot {
+        HorizontalAlign 3
+        VerticalAlign 3
+       }
+       {
+        SizeLayoutWidgetClass {
+         Name "CardImageSize"
+         AllowWidthOverride 1
+         WidthOverride 264
+         AllowHeightOverride 1
+         HeightOverride 198
+         {
+          OverlayWidgetClass {
+           Name "CardImageArea"
+           Slot AlignableSlot {
+            HorizontalAlign 3
+            VerticalAlign 3
+           }
+           {
+            ImageWidgetClass "{69CF060BAAE3A5D9}" {
+             Name "CardEmptyFill"
+             Slot OverlayWidgetSlot "{69CF060BAAE3AA26}" {
+              HorizontalAlign 3
+              VerticalAlign 3
+             }
+             "Is Visible" 0
+             Opacity 0.5
+             Color 0.1 0.1 0.1 1
+            }
+            ImageWidgetClass "{69CF060AFCCA39C1}" {
+             Name "CardImage"
+             Slot OverlayWidgetSlot "{69CF060AFCCA39D8}" {
+              HorizontalAlign 3
+              VerticalAlign 3
+             }
+             "Is Visible" 0
+            }
+            ItemPreviewWidgetClass "{69CD643367C9541D}" {
+             Name "CardPreview"
+             Slot OverlayWidgetSlot "{69CD643367C9546E}" {
+              HorizontalAlign 3
+              VerticalAlign 3
+             }
+             "Is Visible" 0
+            }
+            SizeLayoutWidgetClass {
+             Name "CardUnavailableSize"
+             Slot OverlayWidgetSlot {
+              HorizontalAlign 1
+              VerticalAlign 1
+             }
+             AllowWidthOverride 1
+             WidthOverride 96
+             AllowHeightOverride 1
+             HeightOverride 96
+             {
+              ImageWidgetClass {
+               Name "CardUnavailableIcon"
+               Slot AlignableSlot {
+                HorizontalAlign 3
+                VerticalAlign 3
+               }
+               "Is Visible" 0
+               Opacity 0.55
+               Color 1 1 1 1
+              }
+             }
+            }
+            SizeLayoutWidgetClass {
+             Name "CardDeleteSize"
+             Slot OverlayWidgetSlot {
+              HorizontalAlign 2
+              VerticalAlign 0
+              Padding 0 6 6 0
+             }
+             AllowWidthOverride 1
+             WidthOverride 36
+             AllowHeightOverride 1
+             HeightOverride 36
+             {
+              ButtonWidgetClass {
+               Name "CardDeleteButton"
+               Slot AlignableSlot {
+                HorizontalAlign 3
+                VerticalAlign 3
+               }
+               "Is Visible" 0
+               Color 0 0 0 0
+               {
+                ImageWidgetClass {
+                 Name "CardDeleteIcon"
+                 Slot AlignableSlot {
+                  HorizontalAlign 3
+                  VerticalAlign 3
+                 }
+                 Opacity 0.8
+                 Color 1 1 1 1
+                }
+               }
+              }
+             }
+            }
+           }
+          }
+         }
+        }
+        SizeLayoutWidgetClass "{69CD32729C2F1073}" {
+         Name "CardNameBarSize"
+         AllowHeightOverride 1
+         HeightOverride 36
+         {
+          OverlayWidgetClass "{69CD32729C2F1045}" {
+           Name "CardNameBar"
+           Slot AlignableSlot "{69CD32729C2F105E}" {
+            HorizontalAlign 3
+            VerticalAlign 3
+           }
+           {
+            ImageWidgetClass "{69CD32729C2F1059}" {
+             Name "CardNameBackdrop"
+             Slot OverlayWidgetSlot "{69CD32729C2F1053}" {
+              HorizontalAlign 3
+              VerticalAlign 3
+             }
+             Opacity 0.8
+             Color 0 0 0 1
+            }
+            TextWidgetClass "{69CD32729C2F10A5}" {
+             Name "CardName"
+             Slot OverlayWidgetSlot "{69CD32729C2F10BE}" {
+              HorizontalAlign 0
+              VerticalAlign 1
+              Padding 8 0 8 0
+             }
+             Text "Vehicle"
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+      OverlayWidgetClass "{69CF060BAAE3AAAC}" {
+       Name "CardHoverBorder"
+       Slot OverlayWidgetSlot "{69CF060BAAE3AAA7}" {
+        HorizontalAlign 3
+        VerticalAlign 3
+       }
+       "Is Visible" 0
+       {
+        SizeLayoutWidgetClass "{69CF060BAAE3AABD}" {
+         Name "CardHoverBorderTopSize"
+         Slot OverlayWidgetSlot "{69CF060BAAE3AAB6}" {
+          HorizontalAlign 3
+          VerticalAlign 0
+         }
+         AllowHeightOverride 1
+         HeightOverride 4
+         {
+          ImageWidgetClass "{69CF060BAAE3AA8B}" {
+           Name "CardHoverBorderTop"
+           Slot AlignableSlot "{69CF060BAAE3AA85}" {
+            HorizontalAlign 3
+            VerticalAlign 3
+           }
+           Color 0.7606 0.3864 0.0802 1
+          }
+         }
+        }
+        SizeLayoutWidgetClass "{69CF060BAAE3AA9B}" {
+         Name "CardHoverBorderBottomSize"
+         Slot OverlayWidgetSlot "{69CF060BAAE3AA93}" {
+          HorizontalAlign 3
+          VerticalAlign 2
+         }
+         AllowHeightOverride 1
+         HeightOverride 4
+         {
+          ImageWidgetClass "{69CF060BAAE3AAE9}" {
+           Name "CardHoverBorderBottom"
+           Slot AlignableSlot "{69CF060BAAE3AAE3}" {
+            HorizontalAlign 3
+            VerticalAlign 3
+           }
+           Color 0.7606 0.3864 0.0802 1
+          }
+         }
+        }
+        SizeLayoutWidgetClass "{69CF060BAAE3AAFB}" {
+         Name "CardHoverBorderLeftSize"
+         Slot OverlayWidgetSlot "{69CF060BAAE3AAF7}" {
+          HorizontalAlign 0
+          VerticalAlign 3
+         }
+         AllowWidthOverride 1
+         WidthOverride 4
+         {
+          ImageWidgetClass "{69CF060BAAE3AACE}" {
+           Name "CardHoverBorderLeft"
+           Slot AlignableSlot "{69CF060BAAE3AAC9}" {
+            HorizontalAlign 3
+            VerticalAlign 3
+           }
+           Color 0.7606 0.3864 0.0802 1
+          }
+         }
+        }
+        SizeLayoutWidgetClass "{69CF060BAAE3AAC0}" {
+         Name "CardHoverBorderRightSize"
+         Slot OverlayWidgetSlot "{69CF060BAAE3AADC}" {
+          HorizontalAlign 2
+          VerticalAlign 3
+         }
+         AllowWidthOverride 1
+         WidthOverride 4
+         {
+          ImageWidgetClass "{69CF060BAAE3AAD5}" {
+           Name "CardHoverBorderRight"
+           Slot AlignableSlot "{69CF060BAAE3AAD1}" {
+            HorizontalAlign 3
+            VerticalAlign 3
+           }
+           Color 0.7606 0.3864 0.0802 1
+          }
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ }
+}

@@ -1,0 +1,15 @@
+GenericEntity {
+ ID "BF6A110000000300"
+ components {
+  MeshObject "{BF6A110000000301}" {
+   Object "{591BEA7271A8F00F}Assets/Editor/CompositionSlot/SlotRoadSmall_01.xob"
+   Materials {
+    MaterialAssignClass "{BF6A110000000302}" {
+     SourceMaterial "Road_Small"
+     AssignedMaterial "{FC1C4913098D075C}UI/Materials/Editor/AssetImages/Blur_Composition_Road_Small.emat"
+    }
+   }
+   PixelSizeScale 0.7
+  }
+ }
+}

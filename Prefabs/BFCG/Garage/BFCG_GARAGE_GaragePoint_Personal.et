@@ -1,0 +1,46 @@
+GenericEntity {
+ ID "BF6A110000000100"
+ components {
+  BFCG_GARAGE_GarageComponent "{BF6A110000000101}" {
+   m_sGarageID "BFCG_Garage_01"
+  }
+  MeshObject "{BF6A110000000102}" {
+   Object "{F9C3E9FC6A8F3AD4}Assets/Structures/BuildingsParts/Electrical/TransmitterControlPanel_02/Dst/TransmitterControlPanel_02_V1_dbr_02.xob"
+  }
+  RigidBody "{BF6A110000000103}" {
+   ModelGeometry 1
+   Kinematic 1
+  }
+  SCR_EditableEntityComponent "{BF6A110000000104}" {
+   m_bVisible 0
+   m_Flags NON_DELETABLE
+  }
+  ActionsManagerComponent "{BF6A110000000105}" {
+   ActionContexts {
+    UserActionContext "{BF6A110000000106}" {
+     UIInfo UIInfo "{BF6A110000000107}" {
+      Name "Garage"
+     }
+     ContextName "Garage"
+     Position LoadoutSlotInfo Garage {
+      Offset 0.2286 1.3962 0.1559
+     }
+     Radius 3
+     Omnidirectional 1
+    }
+   }
+   additionalActions {
+    BFCG_GARAGE_OpenGarageMenuAction "{BF6A110000000108}" {
+     ParentContextList {
+      "Garage"
+     }
+     UIInfo UIInfo "{BF6A110000000109}" {
+      Name "Open Garage"
+     }
+    }
+   }
+  }
+  RplComponent "{BF6A11000000010A}" {
+  }
+ }
+}

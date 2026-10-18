@@ -1,0 +1,19 @@
+GenericEntity {
+ ID "BF6A110000000500"
+ components {
+  MeshObject "{BF6A110000000501}" {
+   Object "{591BEA7271A8F00F}Assets/Editor/CompositionSlot/SlotRoadSmall_01.xob"
+   Materials {
+    MaterialAssignClass "{BF6A110000000502}" {
+     SourceMaterial "Road_Small"
+     AssignedMaterial "{A69274F25821BBC7}Assets/Editor/CompositionSlot/Data/BFCG_Composition_Slot_RoadSmall_01_error.emat"
+    }
+    MaterialAssignClass "{BF6A110000000503}" {
+     SourceMaterial "Side"
+     AssignedMaterial "{D59BC6A811687C75}Assets/Editor/CompositionSlot/Data/BFCG_Composition_Slot_Base_Side_Error.emat"
+    }
+   }
+   PixelSizeScale 0.7
+  }
+ }
+}

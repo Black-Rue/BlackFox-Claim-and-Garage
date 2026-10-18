@@ -1,0 +1,42 @@
+GenericEntity {
+ ID "BF1864A100000001"
+ components {
+  Hierarchy "{BF1864A100000002}" {
+  }
+  BFCG_VehicleClaimActionProxyComponent "{BF1864A10000000E}" {
+   m_sRevision "native-menu-v5"
+  }
+  ActionsManagerComponent "{BF1864A100000003}" {
+   AllowCrossHierarchy 1
+   ActionContexts {
+    UserActionContext "{BF1864A100000004}" {
+     UIInfo UIInfo "{BF1864A100000005}" {
+      Name "Vehicle ownership"
+     }
+     ContextName "BFCG_VehicleClaim"
+     Position PointInfo "{BF1864A100000006}" {
+      Offset 0 0 0
+     }
+     Radius 5
+     Omnidirectional 1
+     "Display UI At Reference Point" 0
+    }
+   }
+   additionalActions {
+    BFCG_ToggleVehicleLockUserAction "{BF1864A100000007}" {
+     ParentContextList {
+      "BFCG_VehicleClaim"
+     }
+     UIInfo UIInfo "{BF1864A100000008}" {
+      Name "Claim Vehicle"
+     }
+     Duration 0.25
+     "Sort Priority" 41
+    }
+   }
+  }
+  RplComponent "{BF1864A100000009}" {
+   "Rpl State Override" Runtime
+  }
+ }
+}
