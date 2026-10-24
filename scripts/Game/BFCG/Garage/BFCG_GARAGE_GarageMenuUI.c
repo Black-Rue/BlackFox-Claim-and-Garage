@@ -50,6 +50,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 	protected Widget m_wParkHoverBorder;
 	protected SCR_ButtonTextComponent m_ParkButton;
 	protected string m_sSpotPrefab;
+	protected RplId m_SpotVehicleId;
 	protected int m_iSpotVehicleCount;
 	protected bool m_bParkPending;
 
@@ -474,6 +475,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 
 		m_aEntries.Clear();
 		m_sSpotPrefab = string.Empty;
+		m_SpotVehicleId = RplId.Invalid();
 		m_iSpotVehicleCount = 0;
 		pc.BFCG_GARAGE_RequestContents(s_ContextGarageId);
 	}
@@ -498,9 +500,10 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		FocusInitialWidget();
 	}
 
-	void OnNetSetSpotVehicle(string prefab, int count)
+	void OnNetSetSpotVehicle(string prefab, int count, RplId vehicleId)
 	{
 		m_sSpotPrefab = prefab;
+		m_SpotVehicleId = vehicleId;
 		m_iSpotVehicleCount = count;
 	}
 
@@ -518,7 +521,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 
 		Print(string.Format("[BFCG_GARAGE_GarageMenuUI] Park failed (code %1)", resultCode), LogLevel.WARNING);
 		ShowError(GetParkErrorText(resultCode));
-		if (resultCode == BFCG_GARAGE_EParkResult.NO_VEHICLE || resultCode == BFCG_GARAGE_EParkResult.MULTI_VEHICLE)
+		if (resultCode == BFCG_GARAGE_EParkResult.NO_VEHICLE || resultCode == BFCG_GARAGE_EParkResult.MULTI_VEHICLE || resultCode == BFCG_GARAGE_EParkResult.VEHICLE_CHANGED || resultCode == BFCG_GARAGE_EParkResult.OWNED_BY_ANOTHER_PLAYER)
 			RequestContents();
 	}
 
@@ -561,7 +564,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		if (!m_wParkNameText)
 			return;
 
-		bool hasVehicle = (m_iSpotVehicleCount == 1) && !m_sSpotPrefab.IsEmpty();
+		bool hasVehicle = (m_iSpotVehicleCount == 1) && !m_sSpotPrefab.IsEmpty() && m_SpotVehicleId != RplId.Invalid();
 
 		if (m_wParkImage)
 			m_wParkImage.SetVisible(false);
@@ -574,7 +577,7 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		}
 		else if (!hasVehicle)
 		{
-			m_wParkNameText.SetText("No vehicle at the parking spot");
+			m_wParkNameText.SetText("No owned or unclaimed vehicle at the parking spots");
 		}
 		else
 		{
@@ -618,15 +621,17 @@ class BFCG_GARAGE_GarageMenuUI : ChimeraMenuBase
 		HideError();
 		m_bParkPending = true;
 		Print("[BFCG_GARAGE_GarageMenuUI] Park request", LogLevel.NORMAL);
-		pc.BFCG_GARAGE_RequestPark(s_ContextGarageId);
+		pc.BFCG_GARAGE_RequestPark(s_ContextGarageId, m_SpotVehicleId);
 	}
 
 	protected string GetParkErrorText(int resultCode)
 	{
 		switch (resultCode)
 		{
+			case BFCG_GARAGE_EParkResult.VEHICLE_CHANGED:
+				return "Parking vehicle changed - list was reloaded. Check the vehicle and try again.";
 			case BFCG_GARAGE_EParkResult.NO_VEHICLE:
-				return "No vehicle at the parking spot";
+				return "No owned or unclaimed vehicle at the parking spots";
 			case BFCG_GARAGE_EParkResult.MULTI_VEHICLE:
 				return "Multiple vehicles at the parking spot - only one allowed";
 			case BFCG_GARAGE_EParkResult.GARAGE_FULL:

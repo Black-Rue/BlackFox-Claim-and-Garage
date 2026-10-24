@@ -75,3 +75,19 @@ The wreck lifecycle change requires the following runtime checks; earlier owner 
 ## Release record
 
 Record the game/addon versions, scenario, server/client configuration, tested cases, results and relevant log timestamps. Preserve unresolved warnings and limitations in the release notes. Do not publish credentials, server identity files or private player data with test evidence.
+
+## Active Claim parking selection — 21 October 2026
+
+These runtime cases remain to be tested on a dedicated server with two clients:
+
+- [ ] A occupies the first linked spot, B another: each menu shows only its own active Claim.
+- [ ] Two B vehicles on separate spots: park the first, then the menu shows the next without reopening.
+- [ ] Another player's active Claim never becomes a parking candidate.
+- [ ] With no own active Claim on the linked spots, park an unclaimed vehicle; the garage record belongs to the requesting player.
+- [ ] Treat expired Claims as unclaimed; never offer wrecks or excluded vehicles.
+- [ ] An unclaimed vehicle on an earlier spot does not displace an own active Claim on a later spot.
+- [ ] Two players view the same unclaimed vehicle: after one parks it, the other request must not remove a replacement vehicle.
+- [ ] Two vehicles on one spot, including an owned and a foreign/unclaimed vehicle: parking remains blocked.
+- [ ] An occupied owned vehicle is refused and all occupants survive.
+- [ ] Move/remove the displayed vehicle or expire/change its Claim before clicking: no different vehicle is parked; refresh is required.
+- [ ] Reconnect, restore pending, full garage and failed storage write preserve existing safeguards.

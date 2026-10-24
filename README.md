@@ -116,3 +116,7 @@ Standalone integration and additional development by **BlackFox**. Adapted code,
 The project owner reported successful server testing after the UID consistency fix on **18 October 2026**. The detailed test matrix is maintained in [VALIDATION.md](VALIDATION.md); this report does not mark every persistence or crash-recovery case as tested.
 
 Report problems through [GitHub Issues](https://github.com/Black-Rue/BlackFox-Claim-and-Garage/issues). Include the game/addon version, scenario, reproduction steps and relevant log excerpts. Remove credentials and private player/server data before posting.
+
+## Parking candidates by active Claim
+
+The terminal first searches for vehicles with the requesting player's active Claim; if none are found, it offers the first unclaimed vehicle. Linked spots retain their existing iteration order; arrival time is not tracked. After a successful park, the menu reloads and shows the next owned candidate. Vehicles with an expired Claim are treated as unclaimed. Vehicles with another player's active Claim, destroyed vehicles and excluded vehicles are not candidates. All vehicles still count toward the multiple-vehicles-on-one-spot restriction; passengers still prevent parking. The server rechecks ownership, occupancy and the displayed vehicle replication ID on every park request. A changed candidate requires another click after refresh. Client and server must use the same updated addon because the garage RPC signatures changed.

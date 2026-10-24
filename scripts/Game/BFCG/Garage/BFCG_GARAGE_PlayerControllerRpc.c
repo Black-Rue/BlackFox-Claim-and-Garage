@@ -38,9 +38,9 @@ modded class SCR_PlayerController
 		Rpc(BFCG_GARAGE_RpcAsk_Delete, vehicleID, garageId);
 	}
 
-	void BFCG_GARAGE_RequestPark(RplId garageId)
+	void BFCG_GARAGE_RequestPark(RplId garageId, RplId vehicleId)
 	{
-		Rpc(BFCG_GARAGE_RpcAsk_Park, garageId);
+		Rpc(BFCG_GARAGE_RpcAsk_Park, garageId, vehicleId);
 	}
 
 	[RplRpc(RplChannel.Reliable, RplRcver.Server)]
@@ -69,20 +69,24 @@ modded class SCR_PlayerController
 		BFCG_GARAGE_SpotScan scan = new BFCG_GARAGE_SpotScan();
 		string spotPrefab = string.Empty;
 		int spotCount = 0;
-		if (scan.Scan(garageCmp))
+		RplId spotVehicleId = RplId.Invalid();
+		if (scan.Scan(garageCmp, GetControlledEntity()))
 		{
 			spotCount = scan.GetVehicleCount();
+			RplComponent vehicleRpl = RplComponent.Cast(scan.GetVehicle().FindComponent(RplComponent));
+			if (vehicleRpl)
+				spotVehicleId = vehicleRpl.Id();
 			EntityPrefabData prefabData = scan.GetVehicle().GetPrefabData();
 			if (prefabData)
 				spotPrefab = prefabData.GetPrefabName();
 		}
-		Rpc(BFCG_GARAGE_RpcDo_SetSpotVehicle, spotPrefab, spotCount);
+		Rpc(BFCG_GARAGE_RpcDo_SetSpotVehicle, spotPrefab, spotCount, spotVehicleId);
 
 		Rpc(BFCG_GARAGE_RpcDo_ContentsComplete, vehicles.Count());
 	}
 
 	[RplRpc(RplChannel.Reliable, RplRcver.Server)]
-	protected void BFCG_GARAGE_RpcAsk_Park(RplId garageId)
+	protected void BFCG_GARAGE_RpcAsk_Park(RplId garageId, RplId vehicleId)
 	{
 		BFCG_SendSettings();
 		if (!BFCG_VehicleClaimPersistence.IsReady())
@@ -107,7 +111,7 @@ modded class SCR_PlayerController
 
 		// Rescan on the server because the client's displayed vehicle may have changed.
 		BFCG_GARAGE_SpotScan scan = new BFCG_GARAGE_SpotScan();
-		if (!scan.Scan(garageCmp))
+		if (!scan.Scan(garageCmp, GetControlledEntity()))
 		{
 			Rpc(BFCG_GARAGE_RpcDo_ParkResult, BFCG_GARAGE_EParkResult.NO_VEHICLE);
 			return;
@@ -115,6 +119,13 @@ modded class SCR_PlayerController
 		if (scan.GetVehicleCount() > 1)
 		{
 			Rpc(BFCG_GARAGE_RpcDo_ParkResult, BFCG_GARAGE_EParkResult.MULTI_VEHICLE);
+			return;
+		}
+		// A stale menu must never park a different vehicle, even another one owned by this player.
+		RplComponent selectedRpl = RplComponent.Cast(scan.GetVehicle().FindComponent(RplComponent));
+		if (vehicleId == RplId.Invalid() || !selectedRpl || selectedRpl.Id() != vehicleId)
+		{
+			Rpc(BFCG_GARAGE_RpcDo_ParkResult, BFCG_GARAGE_EParkResult.VEHICLE_CHANGED);
 			return;
 		}
 		if (BFCG_VehicleClaimState.IsClaimedByOtherIdentity(scan.GetVehicle(), playerUID))
@@ -254,11 +265,11 @@ modded class SCR_PlayerController
 	}
 
 	[RplRpc(RplChannel.Reliable, RplRcver.Owner)]
-	protected void BFCG_GARAGE_RpcDo_SetSpotVehicle(string prefab, int count)
+	protected void BFCG_GARAGE_RpcDo_SetSpotVehicle(string prefab, int count, RplId vehicleId)
 	{
 		BFCG_GARAGE_GarageMenuUI menu = BFCG_GARAGE_GarageMenuUI.GetOpenInstance();
 		if (menu)
-			menu.OnNetSetSpotVehicle(prefab, count);
+			menu.OnNetSetSpotVehicle(prefab, count, vehicleId);
 	}
 
 	[RplRpc(RplChannel.Reliable, RplRcver.Owner)]
